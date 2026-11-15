@@ -26,8 +26,14 @@ import { Button } from "../components/ui/button";
 import { Avatar, Modal, title } from "../components/shared";
 import { useGame } from "../network/useGame";
 import { session } from "../network/session";
-import { categories, questionSchema, type Settings } from "../game/types";
-import { questions, readSavedQuestions } from "../data/questions";
+import { categories, type Settings } from "../game/types";
+import {
+  addedMessage,
+  parseQuestionList,
+  questions,
+  saveQuestions,
+  toCustomQuestions,
+} from "../data/questions";
 import { sfx } from "../lib/sound";
 import {
   Confetti,
@@ -302,6 +308,7 @@ export function Lobby() {
   const { state: s, isHost, id } = useGame();
   const [custom, setCustom] = useState("");
   const [save, setSave] = useState(false);
+  const [notice, setNotice] = useState("");
   useOnChange(s?.players.length ?? 0, (prev, next) =>
     next > prev ? sfx.join() : sfx.leave(),
   );
@@ -312,6 +319,10 @@ export function Lobby() {
       (q) => category === "all" || q.category === category,
     ).length;
   const available = countQuestions(s.settings.category);
+  const parsed = parseQuestionList(
+    custom,
+    [...questions, ...s.custom].map((q) => q.text),
+  );
   function setting<K extends keyof Settings>(key: K, value: Settings[K]) {
     const next = { ...s!.settings, [key]: value };
     next.rounds = Math.min(
@@ -523,49 +534,58 @@ export function Lobby() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const q = {
-                id: crypto.randomUUID(),
-                category: "custom" as const,
-                text: custom.trim(),
-              };
-              if (questionSchema.safeParse(q).success) {
-                session.custom(q);
-                if (save) {
-                  const saved = readSavedQuestions();
-                  localStorage.setItem(
-                    "eleven-custom",
-                    JSON.stringify([...saved, q].slice(-200)),
-                  );
-                }
-                setCustom("");
-              }
+              // Rooms hold up to 200 custom questions.
+              const room = toCustomQuestions(
+                parsed.texts.slice(0, 200 - s.custom.length),
+              );
+              if (!room.length) return;
+              for (const q of room) session.custom(q);
+              if (save) saveQuestions(room);
+              setCustom("");
+              setNotice(
+                addedMessage(
+                  room.length,
+                  parsed.skipped + parsed.texts.length - room.length,
+                ),
+              );
             }}
           >
             <label className="sr-only" htmlFor="custom-inline">
-              Custom question
+              Custom questions
             </label>
-            <div className="row">
-              <input
-                id="custom-inline"
-                value={custom}
-                onChange={(e) => setCustom(e.target.value)}
-                minLength={8}
-                maxLength={240}
-                placeholder="Who’s most likely to…"
-                required
-              />
-              <Button type="submit" disabled={custom.trim().length < 8}>
+            <textarea
+              id="custom-inline"
+              rows={3}
+              value={custom}
+              onChange={(e) => {
+                setCustom(e.target.value);
+                setNotice("");
+              }}
+              maxLength={20000}
+              placeholder={
+                "Who’s most likely to…?\nPaste a whole list. Each line or “?” becomes its own question."
+              }
+              required
+            />
+            <div className="row between custom-actions">
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={save}
+                  onChange={(e) => setSave(e.target.checked)}
+                />{" "}
+                Save on my device
+              </label>
+              <Button type="submit" disabled={!parsed.texts.length}>
                 <Plus size={17} /> Add
+                {parsed.texts.length > 1 ? ` ${parsed.texts.length}` : ""}
               </Button>
             </div>
-            <label className="check-label">
-              <input
-                type="checkbox"
-                checked={save}
-                onChange={(e) => setSave(e.target.checked)}
-              />{" "}
-              Save this question on my device
-            </label>
+            {notice && (
+              <p className="fine" role="status">
+                {notice}
+              </p>
+            )}
           </form>
           {s.custom.length > 0 && (
             <p className="fine">

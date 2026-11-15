@@ -24,13 +24,21 @@ test("home, inputs, question editor, privacy, and direct routes", async ({
   await page.getByRole("button", { name: /Funny/ }).click();
   await expect(page.locator(".question-library article")).toHaveCount(18);
   await page
-    .getByLabel("Your question", { exact: true })
+    .getByLabel("Your questions", { exact: true })
     .fill("Who would build the best surprise treehouse?");
   await page.getByRole("button", { name: "Add question", exact: true }).click();
   await page.getByRole("button", { name: /Custom/ }).click();
   await expect(page.locator(".question-library")).toContainText(
     "surprise treehouse",
   );
+  // A pasted list becomes separate questions.
+  await page
+    .getByLabel("Your questions", { exact: true })
+    .fill("who is handsome ? who is boy ?\n1. Who is always late?");
+  await page
+    .getByRole("button", { name: "Add 3 questions", exact: true })
+    .click();
+  await expect(page.locator(".question-library article")).toHaveCount(4);
   await page.goto("/privacy");
   await expect(
     page.getByRole("heading", { name: "Who can see a vote?" }),

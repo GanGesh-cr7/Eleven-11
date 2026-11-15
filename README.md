@@ -182,7 +182,7 @@ Cloning as shown above creates `Eleven-11`, which avoids both. Either way, never
 
 At least **two connected players** are needed to start. 2–12 players is the recommended size.
 
-**Custom questions:** the host can add questions in the lobby or on the `/questions` page. Saving them on the device is opt-in, and saved questions are loaded into new rooms you host. Questions never repeat within a game.
+**Custom questions:** the host can add questions in the lobby or on the `/questions` page. You can paste a whole list at once, for example one you got from a chatbot. Each line, or each question ending in `?`, becomes its own question. List numbers, bullets, `**bold**` and quotes are removed, and duplicates are skipped. Saving them on the device is opt-in, and saved questions are loaded into new rooms you host. Questions never repeat within a game.
 
 **Routes:** `/`, `/join/:code`, `/room/:code`, `/game/:code`, `/results/:code`, `/summary/:code`, `/questions`, `/privacy`, and a custom 404. Game routes restore your membership in that tab or ask you to join. A URL on its own never admits anyone.
 

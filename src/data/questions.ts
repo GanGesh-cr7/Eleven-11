@@ -144,3 +144,60 @@ export function readSavedQuestions(): Question[] {
     return [];
   }
 }
+
+const listMarker = /^(?:[-*•–—]+|\(?\d{1,3}[.):\]-]|Q\d{1,3}[.):-]?)\s*/i;
+
+function cleanQuestion(raw: string) {
+  return raw
+    .replace(/\*\*|__/g, "") // markdown bold from chat answers
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(listMarker, "")
+    .replace(/^["“”'‘’]+|["“”'‘’]+$/g, "")
+    .trim();
+}
+
+/**
+ * Turn pasted text into separate questions. Accepts one question, a list with
+ * one per line (numbered or bulleted is fine), or several run together on one
+ * line — each "?" ends a question. Duplicates (also of `existing`) are dropped.
+ */
+export function parseQuestionList(input: string, existing: string[] = []) {
+  const seen = new Set(existing.map((t) => t.toLowerCase()));
+  const texts: string[] = [];
+  let skipped = 0;
+  // Split on new lines, and right after a "?" unless a closing quote follows it.
+  for (const part of input.split(/\r?\n|(?<=\?)(?!["”’')])/)) {
+    const text = cleanQuestion(part);
+    if (!/[a-z]/i.test(text)) continue;
+    if (text.length < 8 || text.length > 240) {
+      skipped++;
+      continue;
+    }
+    const key = text.toLowerCase();
+    if (seen.has(key)) {
+      skipped++;
+      continue;
+    }
+    seen.add(key);
+    texts.push(text);
+  }
+  return { texts, skipped };
+}
+
+export const toCustomQuestions = (texts: string[]): Question[] =>
+  texts.map((text) => ({ id: crypto.randomUUID(), category: "custom", text }));
+
+/** Append questions to this device's saved list (kept to the newest 200). */
+export function saveQuestions(added: Question[]) {
+  localStorage.setItem(
+    "eleven-custom",
+    JSON.stringify([...readSavedQuestions(), ...added].slice(-200)),
+  );
+}
+
+export const addedMessage = (count: number, skipped: number) =>
+  `Added ${count} ${count === 1 ? "question" : "questions"}` +
+  (skipped
+    ? ` · skipped ${skipped} (duplicate, or not 8–240 characters).`
+    : ".");

@@ -3136,6 +3136,22 @@ footer a:hover {
 .custom-inline h2 {
   font-size: 22px;
 }
+.custom-inline textarea,
+.question-editor textarea {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 96px;
+  resize: vertical;
+}
+.custom-actions {
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.custom-actions .check-label {
+  margin-top: 0;
+  font-size: 12px;
+}
 .check-label {
   font-family: var(--font-body);
 }

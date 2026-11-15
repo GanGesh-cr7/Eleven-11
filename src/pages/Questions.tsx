@@ -5,8 +5,15 @@ import { Button } from "../components/ui/button";
 import { title } from "../components/shared";
 import { useGame } from "../network/useGame";
 import { session } from "../network/session";
-import { categories, questionSchema, type Question } from "../game/types";
-import { questions, readSavedQuestions } from "../data/questions";
+import { categories, type Question } from "../game/types";
+import {
+  addedMessage,
+  parseQuestionList,
+  questions,
+  readSavedQuestions,
+  saveQuestions,
+  toCustomQuestions,
+} from "../data/questions";
 export const categoryIcons: Record<string, string> = {
   all: "✦",
   funny: "😂",
@@ -38,28 +45,29 @@ export function Questions() {
       (filter === "all" || q.category === filter) &&
       q.text.toLowerCase().includes(search.toLowerCase()),
   );
+  const live = game.isHost && game.state;
+  // Paste one question or a whole list; it's split into separate questions.
+  const parsed = parseQuestionList(
+    text,
+    all.map((q) => q.text),
+  );
+  const count = parsed.texts.length;
   function add(e: FormEvent) {
     e.preventDefault();
-    const q = {
-      id: crypto.randomUUID(),
-      category: "custom" as const,
-      text: text.trim(),
-    };
-    if (!questionSchema.safeParse(q).success) return;
-    setCustom((c) => [...c, q]);
-    if (save)
-      localStorage.setItem(
-        "eleven-custom",
-        JSON.stringify([...readSavedQuestions(), q].slice(-200)),
-      );
-    if (game.isHost && game.state) session.custom(q);
+    if (!count) return;
+    const added = toCustomQuestions(parsed.texts);
+    setCustom((c) => [...c, ...added]);
+    if (save) saveQuestions(added);
+    if (live) for (const q of added) session.custom(q);
     setText("");
     setNotice(
-      game.isHost && game.state
-        ? "Added to your live room."
-        : save
-          ? "Saved on this device."
-          : "Added for this visit. Enable saving to keep it.",
+      `${addedMessage(count, parsed.skipped)} ${
+        live
+          ? "They’re in your live room."
+          : save
+            ? "Saved on this device."
+            : "Kept for this visit. Enable saving to keep them."
+      }`,
     );
   }
   return (
@@ -140,16 +148,23 @@ export function Questions() {
           <p>Keep it kind. Keep it curious. Keep it very you.</p>
         </div>
         <form onSubmit={add}>
-          <label htmlFor="new-question">Your question</label>
+          <label htmlFor="new-question">Your questions</label>
           <textarea
             id="new-question"
-            minLength={8}
-            maxLength={240}
+            maxLength={20000}
             required
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Who’s most likely to…"
+            placeholder={
+              "Who’s most likely to…?\nPaste a whole list — one per line, or each ending with “?”"
+            }
+            aria-describedby="new-question-hint"
           />
+          <p id="new-question-hint" className="fine">
+            {count > 1
+              ? `${count} questions found.`
+              : "Tip: paste a whole list at once. Each line or “?” becomes its own question."}
+          </p>
           <label className="check-label">
             <input
               type="checkbox"
@@ -158,9 +173,10 @@ export function Questions() {
             />{" "}
             Save on this device
           </label>
-          <Button type="submit" disabled={text.trim().length < 8}>
-            <Plus size={16} /> Add question
-            {game.isHost && game.state ? " to live room" : ""}
+          <Button type="submit" disabled={!count}>
+            <Plus size={16} /> Add{" "}
+            {count > 1 ? `${count} questions` : "question"}
+            {live ? " to live room" : ""}
           </Button>
           {notice && (
             <p className="fine" role="status">
