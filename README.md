@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/Logo.png" alt="Eleven:11 logo" width="120" />
+<img src="assets/logo.jpg" alt="Eleven:11 logo" width="120" />
 
 # Eleven:11
 
