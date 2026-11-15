@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -7,10 +7,32 @@ import {
   Heart,
   Menu,
   Settings2,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Modal } from "./shared";
+import { sfx, soundStore } from "../lib/sound";
+
+function SoundToggle() {
+  const on = useSyncExternalStore(soundStore.subscribe, soundStore.enabled);
+  return (
+    <Button
+      variant="ghost"
+      className="sound-toggle"
+      aria-label={on ? "Mute sound effects" : "Turn on sound effects"}
+      aria-pressed={on}
+      title={on ? "Sound on" : "Sound off"}
+      onClick={() => {
+        soundStore.setEnabled(!on);
+        if (!on) sfx.select();
+      }}
+    >
+      {on ? <Volume2 size={19} /> : <VolumeX size={19} />}
+    </Button>
+  );
+}
 export function HowTo({ close }: { close: () => void }) {
   return (
     <Modal title="Good friends. Great revelations." close={close}>
@@ -156,14 +178,17 @@ export function Header() {
             <span className="online-dot" /> Made for your people
           </span>
         </nav>
-        <Button
-          variant="ghost"
-          className="mobile-menu"
-          aria-label="Toggle menu"
-          onClick={() => setMenu(!menu)}
-        >
-          <Menu />
-        </Button>
+        <div className="header-actions">
+          <SoundToggle />
+          <Button
+            variant="ghost"
+            className="mobile-menu"
+            aria-label="Toggle menu"
+            onClick={() => setMenu(!menu)}
+          >
+            <Menu />
+          </Button>
+        </div>
       </header>
       {help && <HowTo close={() => setHelp(false)} />}
       {settings && <ConnectionSettings close={() => setSettings(false)} />}

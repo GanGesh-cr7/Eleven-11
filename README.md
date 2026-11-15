@@ -32,7 +32,9 @@ A serverless party game where friends vote on who's most likely to… — peer-t
 - 🗳️ **Anonymous voting** — players only ever see vote totals, never who voted for whom.
 - ⏱️ **Host-authoritative rounds** — one deadline per round, confirmed ballots, fair tie ranking (1, 1, 3).
 - 📚 **108 starter questions** in six categories (Funny, Friendship, Personality, College, Compliments, Random) plus your own custom ones.
-- 🏆 **End-of-game summary** — awards, total votes, a downloadable PNG card, and play again.
+- 🥁 **Suspenseful reveals** — a drumroll name shuffle, rankings that climb to first place, a crown drop, and confetti for the winner.
+- 🔊 **Sound effects** — countdown clinks for the last five seconds, vote chimes, drumroll, and a winner fanfare. All sounds are generated in the browser (no audio files), with a mute button in the header.
+- 🏆 **End-of-game summary** — awards with medals, total votes, a downloadable PNG card, and play again.
 - 📱 **Mobile-first & installable** — responsive layout, PWA manifest, offline app shell.
 - 🔄 **Refresh-safe guests** — a guest reloading the tab is re-admitted with their vote intact.
 

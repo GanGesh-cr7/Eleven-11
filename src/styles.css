@@ -1170,24 +1170,28 @@ footer span > svg {
 }
 .countdown {
   margin: 20px auto 30px;
-  width: 87px;
-  height: 87px;
+  width: 100px;
+  height: 100px;
   padding: 5px;
   border-radius: 50%;
-  background: conic-gradient(var(--purple) var(--progress), #eae2f3 0);
+  background: conic-gradient(
+    var(--ring, var(--purple)) var(--progress),
+    #eae2f3 0
+  );
   display: grid;
   place-items: center;
+  transition: background 0.3s;
 }
 .countdown > span {
-  height: 77px;
-  width: 77px;
+  height: 90px;
+  width: 90px;
   background: #fbfaf8;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   border-radius: 50%;
-  font-size: 28px;
+  font-size: 34px;
   color: var(--dark);
   font-weight: 650;
   line-height: 1.15;
@@ -1199,8 +1203,16 @@ footer span > svg {
   margin-top: 4px;
   color: #9987af;
 }
-.urgent {
-  filter: hue-rotate(80deg);
+.countdown > span > b {
+  font-weight: inherit;
+  display: block;
+}
+.countdown.urgent {
+  --ring: #e0735f;
+  animation: urgent-pulse 1s ease-in-out infinite;
+}
+.countdown.urgent > span {
+  color: #c4533f;
 }
 .voting-page > .eyebrow,
 .results-page > .eyebrow,
@@ -1227,6 +1239,9 @@ footer span > svg {
   max-width: 720px;
 }
 .candidate {
+  position: relative;
+  width: 100%;
+  min-height: 70px;
   border: 1px solid #e7e0ed;
   background: white;
   padding: 17px 15px;
@@ -1238,17 +1253,24 @@ footer span > svg {
   text-align: left;
   transition:
     border-color 0.2s,
-    background 0.2s;
+    background 0.2s,
+    box-shadow 0.2s;
+}
+.candidate:not(:disabled):hover {
+  border-color: #cdbbe6;
+  box-shadow: 0 8px 22px -14px #49356f66;
 }
 .candidate b {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 550;
   overflow-wrap: anywhere;
 }
 .candidate.selected {
   background: #f1eafa;
   border-color: var(--purple);
-  box-shadow: 0 0 0 2px #8064c80a;
+  box-shadow:
+    0 0 0 3px #8064c822,
+    0 10px 24px -14px #8064c8aa;
 }
 .candidate .selection-circle {
   width: 19px;
@@ -1474,8 +1496,10 @@ footer span > svg {
   background: #f3edf9;
   margin-top: 20px;
 }
-.group-awards > svg {
+.group-awards > svg,
+.awards-trophy {
   color: #a28abc;
+  display: inline-flex;
 }
 .group-awards h2 {
   margin: 10px 0 20px;
@@ -2179,16 +2203,17 @@ footer span > svg {
   }
   .candidate {
     padding: 13px 11px;
-    gap: 8px;
+    gap: 9px;
+    min-height: 62px;
   }
   .candidate .avatar {
-    width: 33px;
-    height: 33px;
-    border-radius: 10px;
-    font-size: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    font-size: 11px;
   }
   .candidate b {
-    font-size: 11px;
+    font-size: 13px;
   }
   .candidate .selection-circle {
     height: 16px;
@@ -2397,5 +2422,319 @@ footer {
     top: -22px;
     bottom: auto;
     font-size: 30px !important;
+  }
+}
+
+/* ---- Game feel: animation & playful touches ---- */
+@keyframes urgent-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 #e0735f55;
+  }
+  50% {
+    transform: scale(1.07);
+    box-shadow: 0 0 0 12px #e0735f00;
+  }
+}
+@keyframes dot-pulse {
+  0% {
+    box-shadow: 0 0 0 0 #83a18b88;
+  }
+  100% {
+    box-shadow: 0 0 0 7px #83a18b00;
+  }
+}
+@keyframes ready-glow {
+  0%,
+  100% {
+    box-shadow: 0 6px 18px -8px #8064c899;
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px #8064c822,
+      0 10px 26px -8px #8064c8cc;
+  }
+}
+@keyframes rays-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+@keyframes shimmer {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(320%) skewX(-18deg);
+  }
+}
+.online-dot {
+  animation: dot-pulse 1.8s ease-out infinite;
+}
+.button.ready-pulse:not(:disabled) {
+  animation: ready-glow 1.8s ease-in-out infinite;
+}
+.player-card {
+  position: relative;
+}
+.player-card .wave {
+  position: absolute;
+  top: -10px;
+  left: -6px;
+  font-size: 18px;
+  transform-origin: 70% 80%;
+  pointer-events: none;
+}
+.candidate-slot {
+  display: flex;
+  min-width: 0;
+}
+.candidate .vote-reaction {
+  position: absolute;
+  right: 14px;
+  top: -6px;
+  font-size: 26px;
+  pointer-events: none;
+  z-index: 2;
+}
+.candidate .selection-circle > span {
+  display: grid;
+  place-items: center;
+}
+.reveal-word {
+  display: inline-block;
+}
+.vote-success {
+  position: relative;
+}
+.ballot-drop {
+  font-size: 22px;
+  display: inline-block;
+}
+.vote-progress {
+  position: relative;
+}
+.vote-progress > div > span {
+  transition: width 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.plus-one {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--purple);
+}
+.everyone-in {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple);
+}
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 60;
+}
+.confetti-origin {
+  position: absolute;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+.confetti-origin > span {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.drumroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.drumroll .drum {
+  font-size: 44px;
+  display: inline-block;
+}
+.drumroll p {
+  font-size: 13px;
+  color: #a18aaf;
+  letter-spacing: 0.3px;
+}
+.drumroll .slot {
+  position: relative;
+  height: 46px;
+  min-width: 220px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #f2ebfa;
+  border: 1px dashed #d8c8ec;
+}
+.drumroll .slot b {
+  font-size: 20px;
+  font-weight: 650;
+  color: var(--dark);
+  white-space: nowrap;
+}
+.winner-spotlight {
+  margin-bottom: 22px;
+}
+.spotlight-avatars {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 26px 0 12px;
+}
+.spotlight-avatars .rays {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    #f5c66b33 0 12deg,
+    transparent 12deg 30deg
+  );
+  mask: radial-gradient(circle, #000 30%, transparent 70%);
+  transform: translate(-50%, -50%);
+  animation: rays-spin 14s linear infinite;
+  pointer-events: none;
+}
+.crowned {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+.crowned .avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 22px;
+  font-size: 20px;
+  box-shadow:
+    0 0 0 4px #fff,
+    0 12px 28px -12px #49356f88;
+}
+.crown-drop {
+  position: absolute;
+  top: -26px;
+  font-size: 30px;
+  z-index: 1;
+}
+.winner-spotlight .winner-announcement {
+  font-size: 17px;
+  font-weight: 650;
+  margin: 8px 0 4px;
+}
+.winner-quip {
+  font-size: 12px;
+  color: #9c86af;
+}
+.no-votes {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.no-votes > span {
+  font-size: 38px;
+  display: inline-block;
+}
+.ranking {
+  position: relative;
+  overflow: hidden;
+}
+.ranking.winner {
+  box-shadow: 0 10px 26px -18px #8064c8aa;
+}
+.ranking.winner::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, #ffffffaa, transparent);
+  animation: shimmer 1.4s 2.2s ease-in-out 2;
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.award.top {
+  background: linear-gradient(90deg, #f5c66b22, transparent 70%);
+  border-radius: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.award > span:first-child {
+  display: inline-block;
+}
+@media (max-width: 800px) {
+  /* Keep the submit button reachable while scrolling a long player list. */
+  .vote-submit-bar {
+    position: sticky;
+    bottom: 14px;
+    z-index: 20;
+  }
+  .vote-submit-bar .button {
+    width: 100%;
+    box-shadow: 0 12px 28px -10px #49356f88;
+  }
+}
+@media (max-width: 600px) {
+  .countdown {
+    width: 96px;
+    height: 96px;
+  }
+  .countdown > span {
+    width: 86px;
+    height: 86px;
+    font-size: 32px;
+  }
+  .crowned .avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 17px;
+  }
+  .drumroll .slot {
+    min-width: 180px;
+  }
+  .winner-spotlight .winner-announcement {
+    font-size: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-layer,
+  .player-card .wave,
+  .candidate .vote-reaction {
+    display: none;
+  }
+}
+
+/* ---- Sound toggle ---- */
+.site-header nav {
+  margin-left: auto;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 18px;
+}
+.sound-toggle {
+  color: #8f849e;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+.sound-toggle[aria-pressed="true"] {
+  color: var(--purple);
+}
+@media (max-width: 600px) {
+  .header-actions {
+    margin-left: auto;
   }
 }

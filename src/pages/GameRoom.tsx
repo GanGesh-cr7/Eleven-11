@@ -27,6 +27,37 @@ import { Avatar, Modal, useGame, title } from "../components/shared";
 import { session } from "../network/session";
 import { categories, questionSchema, type Settings } from "../game/types";
 import { questions, readSavedQuestions } from "../data/questions";
+import { sfx } from "../lib/sound";
+import {
+  Confetti,
+  CountUp,
+  Drumroll,
+  RevealText,
+  randomReaction,
+} from "../components/fun";
+
+const winnerQuips = [
+  "Main character energy, confirmed.",
+  "The group has receipts.",
+  "Nobody is surprised. Nobody.",
+  "Called it. Everyone called it.",
+  "Democracy has spoken.",
+  "This will be brought up again.",
+];
+const spring = { type: "spring", stiffness: 320, damping: 18 } as const;
+
+/** Runs `fn(previous, next)` when `value` changes, but not on first render. */
+function useOnChange<T>(value: T, fn: (prev: T, next: T) => void) {
+  const prev = useRef(value);
+  const latest = useRef(fn);
+  latest.current = fn;
+  useEffect(() => {
+    if (Object.is(prev.current, value)) return;
+    const before = prev.current;
+    prev.current = value;
+    latest.current(before, value);
+  }, [value]);
+}
 export function ShareRoom({ code }: { code: string }) {
   const [copied, setCopied] = useState("");
   const [fallback, setFallback] = useState(false);
@@ -261,6 +292,9 @@ export function Lobby() {
   const { state: s, isHost, id } = useGame();
   const [custom, setCustom] = useState("");
   const [save, setSave] = useState(false);
+  useOnChange(s?.players.length ?? 0, (prev, next) =>
+    next > prev ? sfx.join() : sfx.leave(),
+  );
   if (!s) return null;
   const online = s.players.filter((p) => p.online).length;
   const countQuestions = (category: Settings["category"]) =>
@@ -304,38 +338,60 @@ export function Lobby() {
             </span>
           </div>
           <div className="players-grid">
-            {s.players.map((p, i) => (
-              <div className="player-card" key={p.id}>
-                <Avatar player={p} index={i} />
-                <div>
-                  <b>
-                    {p.name}
-                    {p.id === id ? " (you)" : ""}
-                  </b>
-                  <span>
-                    {p.host ? (
-                      <>
-                        <Crown size={11} /> The host
-                      </>
-                    ) : p.online ? (
-                      "Ready for the revelations"
-                    ) : (
-                      "Reconnecting…"
-                    )}
-                  </span>
-                </div>
-                {isHost && !p.host && (
-                  <button
-                    className="kick"
-                    title={`Remove ${p.name}`}
-                    onClick={() => session.kick(p.id)}
+            <AnimatePresence initial={false}>
+              {s.players.map((p, i) => (
+                <motion.div
+                  className="player-card"
+                  key={p.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={spring}
+                >
+                  <motion.span
+                    className="wave"
+                    aria-hidden="true"
+                    initial={{ opacity: 0, rotate: 0 }}
+                    animate={{
+                      opacity: [0, 1, 1, 0],
+                      rotate: [0, 22, -12, 22, 0],
+                    }}
+                    transition={{ duration: 1.6, delay: 0.2 }}
                   >
-                    <X size={14} />
-                  </button>
-                )}
-                <span className={p.online ? "online-dot" : "offline-dot"} />
-              </div>
-            ))}
+                    👋
+                  </motion.span>
+                  <Avatar player={p} index={i} />
+                  <div>
+                    <b>
+                      {p.name}
+                      {p.id === id ? " (you)" : ""}
+                    </b>
+                    <span>
+                      {p.host ? (
+                        <>
+                          <Crown size={11} /> The host
+                        </>
+                      ) : p.online ? (
+                        "Ready for the revelations"
+                      ) : (
+                        "Reconnecting…"
+                      )}
+                    </span>
+                  </div>
+                  {isHost && !p.host && (
+                    <button
+                      className="kick"
+                      title={`Remove ${p.name}`}
+                      onClick={() => session.kick(p.id)}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                  <span className={p.online ? "online-dot" : "offline-dot"} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
           {online < 2 && (
             <div className="empty-friends">
@@ -427,7 +483,7 @@ export function Lobby() {
           </label>
           {isHost ? (
             <Button
-              className="full"
+              className={`full ${online >= 2 && available > 0 ? "ready-pulse" : ""}`}
               disabled={online < 2 || available === 0}
               onClick={() => session.start()}
             >
@@ -519,11 +575,13 @@ export function Voting() {
   const [selected, setSelected] = useState(""),
     [search, setSearch] = useState(""),
     [pending, setPending] = useState(false),
+    [reaction, setReaction] = useState({ id: "", emoji: "", key: 0 }),
     [now, setNow] = useState(Date.now());
   const round = s!.round!;
   useEffect(() => {
     setSelected("");
     setPending(false);
+    setReaction({ id: "", emoji: "", key: 0 });
   }, [round.id]);
   useEffect(() => {
     if (ack) setPending(false);
@@ -534,9 +592,33 @@ export function Voting() {
   }, []);
   const left = Math.max(0, Math.ceil((round.deadline - now - offset) / 1000));
   const eligibleVoter = round.eligible.some((p) => p.id === id);
+  const everyone = round.voted >= round.eligible.length;
+  const controlsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const t = setTimeout(sfx.roundStart, 60);
+    return () => clearTimeout(t);
+  }, [round.id]);
+  // Clink on each of the final five seconds, then a buzzer at zero.
+  useOnChange(left, (prev, next) => {
+    if (next >= 1 && next <= 5) sfx.tick(next);
+    else if (next === 0 && prev > 0) sfx.timeUp();
+  });
+  useOnChange(ack, (prev, next) => {
+    if (next && !prev) sfx.voted();
+  });
+  useOnChange(round.voted, (prev, next) => {
+    if (next <= prev) return;
+    if (next >= round.eligible.length) sfx.everyoneIn();
+    else sfx.blip();
+  });
   return (
     <section className="voting-page">
-      <div className="round-top">
+      <motion.div
+        className="round-top"
+        key={`top-${round.id}`}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
         <span className="round-pill">
           QUESTION {round.number} <span>/ {s!.settings.rounds}</span>
         </span>
@@ -544,9 +626,9 @@ export function Voting() {
           <Sparkles size={14} />
           {title(round.question.category)}
         </span>
-      </div>
+      </motion.div>
       <div
-        className={`countdown ${left <= 5 ? "urgent" : ""}`}
+        className={`countdown ${left <= 5 && left > 0 ? "urgent" : ""}`}
         role="timer"
         aria-label={`${left} seconds remaining`}
         style={
@@ -556,12 +638,21 @@ export function Voting() {
         }
       >
         <span>
-          {left}
-          <small>SECONDS</small>
+          <motion.b
+            key={left}
+            initial={{ scale: left <= 5 ? 1.45 : 1.15, opacity: 0.75 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={spring}
+          >
+            {left}
+          </motion.b>
+          <small>{left === 0 ? "TIME’S UP" : "SECONDS"}</small>
         </span>
       </div>
       <div className="eyebrow">BE HONEST. WE CAN TAKE IT.</div>
-      <h1 key={round.id}>{round.question.text}</h1>
+      <h1 key={round.id}>
+        <RevealText text={round.question.text} />
+      </h1>
       <p className="vote-subtitle" role="status">
         {ack
           ? "Your vote has been submitted! Waiting for everyone..."
@@ -591,60 +682,134 @@ export function Voting() {
               status !== "connected" ||
               !eligibleVoter ||
               (!s!.settings.selfVote && p.id === id);
+            const isSelected = selected === p.id;
             return (
-              <motion.button
-                whileTap={{ scale: 0.98 }}
+              <motion.div
                 key={p.id}
-                className={`candidate ${selected === p.id ? "selected" : ""}`}
-                disabled={disabled}
-                onClick={() => {
-                  setSelected(p.id);
-                  setPending(false);
+                className="candidate-slot"
+                initial={{ opacity: 0, y: 16, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  ...spring,
+                  delay: Math.min(0.25 + i * 0.05, 0.9),
                 }}
-                aria-pressed={selected === p.id}
               >
-                <Avatar player={p} index={i} />
-                <b>
-                  {p.name}
-                  {p.id === id ? " (you)" : ""}
-                </b>
-                <span className="selection-circle">
-                  {selected === p.id && <Check size={15} />}
-                </span>
-              </motion.button>
+                <motion.button
+                  className={`candidate ${isSelected ? "selected" : ""}`}
+                  disabled={disabled}
+                  animate={{ scale: isSelected ? 1.03 : 1 }}
+                  whileHover={disabled ? undefined : { y: -3 }}
+                  whileTap={disabled ? undefined : { scale: 0.96 }}
+                  transition={spring}
+                  onClick={() => {
+                    sfx.select();
+                    setSelected(p.id);
+                    setPending(false);
+                    setReaction((r) => ({
+                      id: p.id,
+                      emoji: randomReaction(),
+                      key: r.key + 1,
+                    }));
+                  }}
+                  aria-pressed={isSelected}
+                >
+                  <AnimatePresence>
+                    {reaction.id === p.id && (
+                      <motion.span
+                        key={reaction.key}
+                        className="vote-reaction"
+                        aria-hidden="true"
+                        initial={{ opacity: 0, y: 0, scale: 0.4 }}
+                        animate={{
+                          opacity: [0, 1, 1, 0],
+                          y: -52,
+                          scale: [0.4, 1.3, 1, 1],
+                        }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 1.1 }}
+                      >
+                        {reaction.emoji}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                  <Avatar player={p} index={i} />
+                  <b>
+                    {p.name}
+                    {p.id === id ? " (you)" : ""}
+                  </b>
+                  <span className="selection-circle">
+                    <AnimatePresence>
+                      {isSelected && (
+                        <motion.span
+                          initial={{ scale: 0, rotate: -45 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          exit={{ scale: 0 }}
+                          transition={spring}
+                        >
+                          <Check size={15} />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </span>
+                </motion.button>
+              </motion.div>
             );
           })}
       </div>
-      <div className="vote-controls">
-        {ack ? (
-          <div className="vote-success">
-            <CheckCheck size={21} /> Your secret is safe with the ballot box.
-          </div>
-        ) : (
-          <Button
-            disabled={
-              !selected ||
-              left === 0 ||
-              status !== "connected" ||
-              !eligibleVoter
-            }
-            onClick={() => {
-              setPending(true);
-              session.vote(selected);
-            }}
-          >
-            {pending ? (
-              <>
-                <LoaderCircle className="spin" size={17} /> Retry vote
-                confirmation
-              </>
-            ) : (
-              <>
-                Submit Vote <ArrowRight size={17} />
-              </>
-            )}
-          </Button>
-        )}
+      <div className="vote-controls" ref={controlsRef}>
+        <AnimatePresence mode="wait" initial={false}>
+          {ack ? (
+            <motion.div
+              key="sent"
+              className="vote-success"
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={spring}
+            >
+              <motion.span
+                className="ballot-drop"
+                aria-hidden="true"
+                initial={{ y: -36, rotate: -25, opacity: 0 }}
+                animate={{ y: 0, rotate: 0, opacity: 1 }}
+                transition={{ ...spring, delay: 0.1 }}
+              >
+                📨
+              </motion.span>
+              <CheckCheck size={21} /> Your secret is safe with the ballot box.
+            </motion.div>
+          ) : (
+            <motion.div
+              key="submit"
+              className="vote-submit-bar"
+              exit={{ opacity: 0, y: 10 }}
+            >
+              <Button
+                disabled={
+                  !selected ||
+                  left === 0 ||
+                  status !== "connected" ||
+                  !eligibleVoter
+                }
+                onClick={() => {
+                  setPending(true);
+                  session.vote(selected);
+                }}
+              >
+                {pending ? (
+                  <>
+                    <LoaderCircle className="spin" size={17} /> Retry vote
+                    confirmation
+                  </>
+                ) : (
+                  <>
+                    Submit Vote <ArrowRight size={17} />
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {ack && <Confetti count={22} anchor={controlsRef} />}
         <p className="fine">
           <ShieldCheck size={13} /> Only the host’s browser receives individual
           ballots.
@@ -657,9 +822,33 @@ export function Voting() {
               }}
             />
           </div>
+          <AnimatePresence>
+            {round.voted > 0 && (
+              <motion.span
+                key={round.voted}
+                className="plus-one"
+                aria-hidden="true"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: [0, 1, 0], y: -20 }}
+                transition={{ duration: 1 }}
+              >
+                +1
+              </motion.span>
+            )}
+          </AnimatePresence>
           <p>
             {round.voted} / {round.eligible.length} votes received
           </p>
+          {everyone && (
+            <motion.p
+              className="everyone-in"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={spring}
+            >
+              Everyone’s in! 🎉 Get ready…
+            </motion.p>
+          )}
         </div>
       </div>
     </section>
@@ -669,30 +858,72 @@ export function Voting() {
 export function Results() {
   const { state: s, isHost, status } = useGame();
   const [reveal, setReveal] = useState(false);
+  const spotlightRef = useRef<HTMLDivElement>(null);
   const round = s!.round!;
   useEffect(() => {
     setReveal(false);
-    const t = setTimeout(() => setReveal(true), 1200);
+    const t = setTimeout(() => setReveal(true), 2400);
     return () => clearTimeout(t);
   }, [round.id]);
   const winners = round.results.filter((p) => p.rank === 1 && p.votes > 0);
+  const rowDelay = (i: number) =>
+    Math.min((round.results.length - i - 1) * 0.14, 2);
+  // The spotlight lands after the rankings have climbed up to first place.
+  const spotlightDelay = rowDelay(0) + 0.45;
+  useEffect(() => sfx.drumroll(2.3), [round.id]);
+  useEffect(() => {
+    if (!reveal) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const at = (seconds: number, fn: () => void) =>
+      timers.push(setTimeout(fn, seconds * 1000));
+    // Rows appear from last place upwards; tick on each, at most a dozen.
+    round.results.forEach((_, i) => {
+      const step = round.results.length - 1 - i;
+      if (step < 12) at(rowDelay(i), () => sfx.rowTick(step));
+    });
+    if (winners.length) {
+      at(spotlightDelay, sfx.fanfare);
+      at(spotlightDelay + 0.4, () => sfx.sparkle());
+    } else at(spotlightDelay, sfx.sadTrombone);
+    return () => timers.forEach(clearTimeout);
+  }, [reveal]);
+  const quip =
+    winners.length > 1
+      ? "Great minds. Shared spotlight."
+      : winnerQuips[(round.number - 1) % winnerQuips.length];
   return (
     <section className="results-page">
       <span className="round-pill">
         THE RESULTS ARE IN · {round.number} / {s!.settings.rounds}
       </span>
-      <div className="results-trophy">
+      <motion.div
+        className="results-trophy"
+        animate={
+          reveal
+            ? { rotate: [0, -12, 12, 0], scale: [1, 1.2, 1] }
+            : { rotate: [-6, 6, -6] }
+        }
+        transition={
+          reveal
+            ? { duration: 0.7, delay: spotlightDelay }
+            : { repeat: Infinity, duration: 0.45 }
+        }
+      >
         <Trophy size={34} />
         <span>✦</span>
-      </div>
+      </motion.div>
       <div className="eyebrow">
         {reveal ? "THE GROUP HAS SPOKEN" : "A LITTLE SUSPENSE…"}
       </div>
       <h1>{round.question.text}</h1>
       <AnimatePresence mode="wait">
         {!reveal ? (
-          <motion.div className="suspense" key="suspense" exit={{ opacity: 0 }}>
-            <LoaderCircle className="spin" /> Counting the revelations…
+          <motion.div
+            className="suspense"
+            key="suspense"
+            exit={{ opacity: 0, scale: 0.9 }}
+          >
+            <Drumroll names={round.results.map((p) => p.name)} />
           </motion.div>
         ) : (
           <motion.div
@@ -702,25 +933,68 @@ export function Results() {
             key="rankings"
           >
             {winners.length > 0 ? (
-              <p className="winner-announcement">
-                {winners.map((p) => p.name).join(" & ")}{" "}
-                {winners.length > 1 ? "share the crown" : "takes the crown"}{" "}
-                <Crown size={17} />
-              </p>
+              <motion.div
+                className="winner-spotlight"
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ ...spring, delay: spotlightDelay }}
+              >
+                <div className="spotlight-avatars" ref={spotlightRef}>
+                  <span className="rays" aria-hidden="true" />
+                  {winners.slice(0, 4).map((p) => (
+                    <div className="crowned" key={p.id}>
+                      <motion.span
+                        className="crown-drop"
+                        aria-hidden="true"
+                        initial={{ y: -70, opacity: 0, rotate: -35 }}
+                        animate={{ y: 0, opacity: 1, rotate: 0 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 11,
+                          delay: spotlightDelay + 0.35,
+                        }}
+                      >
+                        👑
+                      </motion.span>
+                      <Avatar
+                        player={p}
+                        index={round.results.findIndex((r) => r.id === p.id)}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="winner-announcement">
+                  {winners.map((p) => p.name).join(" & ")}{" "}
+                  {winners.length > 1 ? "share the crown" : "takes the crown"}{" "}
+                  <Crown size={17} />
+                </p>
+                <p className="winner-quip">{quip}</p>
+              </motion.div>
             ) : (
-              <p className="winner-announcement">
-                No ballots this round. A mysterious bunch.
-              </p>
+              <div className="no-votes">
+                <motion.span
+                  aria-hidden="true"
+                  animate={{ rotate: [-8, 8, -8], y: [0, -3, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.4 }}
+                >
+                  🦗
+                </motion.span>
+                <p className="winner-announcement">
+                  No ballots this round. A mysterious bunch.
+                </p>
+              </div>
+            )}
+            {winners.length > 0 && (
+              <Confetti delay={spotlightDelay + 0.3} anchor={spotlightRef} />
             )}
             {round.results.map((p, i) => (
               <motion.div
                 className={`ranking ${p.rank === 1 && p.votes > 0 ? "winner" : ""}`}
                 key={p.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  delay: Math.min((round.results.length - i - 1) * 0.12, 2),
-                }}
+                initial={{ opacity: 0, y: 14, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ ...spring, delay: rowDelay(i) }}
               >
                 <span className="rank-number">
                   {p.rank === 1 && p.votes > 0 ? (
@@ -734,7 +1008,8 @@ export function Results() {
                   <div className="row between">
                     <b>{p.name}</b>
                     <span>
-                      {p.votes} {p.votes === 1 ? "vote" : "votes"}
+                      <CountUp value={p.votes} delay={rowDelay(i) + 0.2} />{" "}
+                      {p.votes === 1 ? "vote" : "votes"}
                     </span>
                   </div>
                   <div className="rank-track">
@@ -744,10 +1019,9 @@ export function Results() {
                         width: `${(p.votes / Math.max(1, round.voted)) * 100}%`,
                       }}
                       transition={{
-                        delay:
-                          Math.min((round.results.length - i - 1) * 0.12, 2) +
-                          0.2,
-                        duration: 0.7,
+                        delay: rowDelay(i) + 0.2,
+                        duration: 0.8,
+                        ease: [0.22, 1.4, 0.36, 1],
                       }}
                     />
                   </div>
@@ -758,7 +1032,12 @@ export function Results() {
         )}
       </AnimatePresence>
       {reveal && (
-        <div className="result-actions">
+        <motion.div
+          className="result-actions"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: Math.min(spotlightDelay, 1.2) }}
+        >
           {isHost ? (
             <Button
               disabled={status !== "connected"}
@@ -778,7 +1057,7 @@ export function Results() {
           <p className="fine">
             {round.voted} honest votes. Zero explanations required.
           </p>
-        </div>
+        </motion.div>
       )}
     </section>
   );
@@ -804,6 +1083,16 @@ export function Summary() {
   const awards = [...wins.values()].sort(
     (a, b) => b.count - a.count || a.name.localeCompare(b.name),
   );
+  // Competition ranking so tied crown counts share the same medal.
+  const awardRank = (count: number) =>
+    1 + awards.filter((a) => a.count > count).length;
+  const medal = (rank: number) =>
+    rank === 1 ? "👑" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "✨";
+  useEffect(() => {
+    if (!awards.length) return;
+    const t = setTimeout(sfx.celebrate, 400);
+    return () => clearTimeout(t);
+  }, []);
   async function share() {
     const text = `Our Eleven:11 night ✧\n${history.length} questions · ${s!.players.length} friends · ${total} votes\n${history
       .map(
@@ -864,47 +1153,93 @@ export function Summary() {
   }
   return (
     <section className="summary-page">
-      <div className="eyebrow">SAME FRIENDS. NEW STORIES.</div>
-      <h1>
+      {awards.length > 0 && <Confetti count={60} delay={0.4} originY={30} />}
+      <motion.div
+        className="eyebrow"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        SAME FRIENDS. NEW STORIES.
+      </motion.div>
+      <motion.h1
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ ...spring, delay: 0.1 }}
+      >
         Well, that was revealing<span>.</span>
-      </h1>
+      </motion.h1>
       <p>A few secrets out. A few memories in.</p>
       <div className="summary-stats">
-        <div>
-          <b>{history.length}</b>
-          <span>questions played</span>
-        </div>
-        <div>
-          <b>{s!.players.length}</b>
-          <span>favorite people</span>
-        </div>
-        <div>
-          <b>{total}</b>
-          <span>honest votes</span>
-        </div>
+        {[
+          [history.length, "questions played"],
+          [s!.players.length, "favorite people"],
+          [total, "honest votes"],
+        ].map(([value, label], i) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...spring, delay: 0.25 + i * 0.12 }}
+          >
+            <b>
+              <CountUp value={value as number} delay={0.35 + i * 0.12} />
+            </b>
+            <span>{label}</span>
+          </motion.div>
+        ))}
       </div>
       <div className="panel group-awards">
-        <Trophy size={28} />
+        <motion.span
+          className="awards-trophy"
+          animate={{ rotate: [-6, 6, -6], y: [0, -3, 0] }}
+          transition={{ repeat: Infinity, duration: 2.4 }}
+        >
+          <Trophy size={28} />
+        </motion.span>
         <h2>The headline makers</h2>
         {awards.length ? (
-          awards.map((p, i) => (
-            <div className="award" key={p.name + i}>
-              <span>{i === 0 ? "👑" : "✨"}</span>
-              <b>{p.name}</b>
-              <span>
-                {p.count} {p.count === 1 ? "crown" : "crowns"} ·{" "}
-                {i === 0 ? "Main character energy" : "Unforgettable impression"}
-              </span>
-            </div>
-          ))
+          awards.map((p, i) => {
+            const rank = awardRank(p.count);
+            return (
+              <motion.div
+                className={`award ${rank === 1 ? "top" : ""}`}
+                key={p.name + i}
+                initial={{ opacity: 0, x: -18 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ ...spring, delay: 0.7 + Math.min(i * 0.12, 1.2) }}
+              >
+                <motion.span
+                  animate={
+                    rank === 1 ? { y: [0, -4, 0], rotate: [-8, 8, -8] } : {}
+                  }
+                  transition={{ repeat: Infinity, duration: 1.8 }}
+                >
+                  {medal(rank)}
+                </motion.span>
+                <b>{p.name}</b>
+                <span>
+                  {p.count} {p.count === 1 ? "crown" : "crowns"} ·{" "}
+                  {rank === 1
+                    ? "Main character energy"
+                    : "Unforgettable impression"}
+                </span>
+              </motion.div>
+            );
+          })
         ) : (
           <p>A group of mystery. No votes cast this time.</p>
         )}
       </div>
       <div className="session-history">
         <h2>For the group chat archives</h2>
-        {history.map((r) => (
-          <div key={r.id}>
+        {history.map((r, i) => (
+          <motion.div
+            key={r.id}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: Math.min(i * 0.05, 0.5) }}
+          >
             <span>{String(r.number).padStart(2, "0")}</span>
             <p>
               {r.question.text}
@@ -915,7 +1250,7 @@ export function Summary() {
                   .join(" & ") || "No votes"}
               </b>
             </p>
-          </div>
+          </motion.div>
         ))}
       </div>
       <div className="summary-actions">
