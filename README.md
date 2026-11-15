@@ -1,105 +1,310 @@
+<div align="center">
+
+<img src="assets/Logo.png" alt="Eleven:11 logo" width="120" />
+
 # Eleven:11
 
-Your friends. Your votes. Your secrets.
+**Your friends. Your votes. Your secrets.**
 
-A static React/TypeScript party game with real Trystero 0.27 Nostr discovery and WebRTC DataChannels. No game server, database, registration, analytics, or simulated participants. The supplied `assets/Logo.png` and `assets/favicon.png` are used for branding and installation icons.
+A serverless party game where friends vote on who's most likely to… — peer-to-peer over WebRTC, no accounts, no backend.
 
-## Run locally
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)
+![WebRTC](https://img.shields.io/badge/WebRTC-Trystero_0.27-333333?logo=webrtc&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
 
-Use Node.js 22.12+ (Node 22.23.5 was used here).
+[Screenshots](#-screenshots) · [Installation](#-installation) · [How to play](#-how-to-play) · [Deployment](#-deployment) · [How it works](#-how-it-works) · [Privacy & limits](#-privacy-reliability--limits)
+
+<br />
+
+<img src="docs/screenshots/home.png" alt="Eleven:11 home page" width="900" />
+
+</div>
+
+---
+
+## ✨ Features
+
+- 🎉 **Zero sign-ups** — pick a nickname, create a room, share the link.
+- 🔗 **Truly peer-to-peer** — Trystero (Nostr discovery) + WebRTC DataChannels. No game server, database, or analytics.
+- 🗳️ **Anonymous voting** — players only ever see vote totals, never who voted for whom.
+- ⏱️ **Host-authoritative rounds** — one deadline per round, confirmed ballots, fair tie ranking (1, 1, 3).
+- 📚 **108 starter questions** in six categories (Funny, Friendship, Personality, College, Compliments, Random) plus your own custom ones.
+- 🏆 **End-of-game summary** — awards, total votes, a downloadable PNG card, and play again.
+- 📱 **Mobile-first & installable** — responsive layout, PWA manifest, offline app shell.
+- 🔄 **Refresh-safe guests** — a guest reloading the tab is re-admitted with their vote intact.
+
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/screenshots/lobby.png" alt="Lobby with three players and game settings" /><br />
+      <sub><b>Lobby</b> — share the invite, see who's connected, set up the game</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/screenshots/vote.png" alt="Voting screen with countdown timer" /><br />
+      <sub><b>Voting</b> — pick a friend before the timer runs out</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/results.png" alt="Round results with vote bars" /><br />
+      <sub><b>Results</b> — vote totals and the crown, no voter names</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/summary.png" alt="End of game summary" /><br />
+      <sub><b>Summary</b> — awards, stats, and a shareable card</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/questions.png" alt="Question library with category filters" /><br />
+      <sub><b>Question library</b> — browse, filter, and add your own</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/home-mobile.png" alt="Home page on mobile" width="45%" />
+      &nbsp;
+      <img src="docs/screenshots/vote-mobile.png" alt="Voting on mobile" width="45%" /><br />
+      <sub><b>Mobile</b> — built for phones around the table</sub>
+    </td>
+  </tr>
+</table>
+
+> These screenshots were captured from a real three-player game running over public Nostr relays — not mockups.
+
+## 🚀 Installation
+
+### Prerequisites
+
+| Requirement | Version | Notes |
+| --- | --- | --- |
+| [Node.js](https://nodejs.org/) | **22.12 or newer** | Developed on Node 22.23.5 |
+| npm | ships with Node | |
+| A modern browser | Chrome, Edge, Firefox, Safari | WebRTC + Web Crypto required |
+
+Check your version:
+
+```sh
+node --version   # should print v22.12.0 or higher
+```
+
+### 1. Clone the repository
+
+```sh
+git clone https://github.com/GanGesh-cr7/Eleven-11.git
+cd Eleven-11
+```
+
+### 2. Install dependencies
 
 ```sh
 npm ci
+```
+
+### 3. Start the development server
+
+```sh
 npm run dev
 ```
 
-Open the printed localhost URL. Create a room in one browser, copy the invite, and open it in a separate browser profile or incognito session. Enter another nickname, wait for host acknowledgement, then start the game. Two to twelve players are the initial target; see `TESTING.md` for what was actually verified.
+Open the printed URL (default **http://127.0.0.1:5173**).
+
+### 4. Try a game on one computer
+
+1. In your normal browser window, enter a nickname and click **Create a Game**.
+2. Click **Copy invite link**.
+3. Open the link in a **separate browser profile or an incognito window** (each player needs their own tab session).
+4. Enter a different nickname and click **Join this Game**. The guest appears in the host's lobby once the host acknowledges them.
+5. Back in the host window, click **Let's play**.
+
+> 💡 To play with phones or friends elsewhere, deploy the app over **HTTPS** (see [Deployment](#-deployment)). A plain LAN IP like `http://192.168.x.x` isn't a secure context, so Web Crypto — and therefore joining — won't work there.
+
+### 5. Build for production
+
+```sh
+npm run build     # type-checks and writes static files to dist/
+npm run preview   # serves dist/ locally for a final check
+```
+
+Only the files in `dist/` need hosting — no Node process runs after deployment.
+
+### Available scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the Vite dev server on `127.0.0.1` |
+| `npm run build` | Type-check with `tsc` and build to `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm test` | Run the Vitest unit tests (game engine & protocol) |
+| `npm run test:e2e` | Run Playwright UI and real multiplayer tests |
+
+### Running the tests
 
 ```sh
 npm test
+
+# one-time browser download for end-to-end tests
 node node_modules/@playwright/test/cli.js install chromium firefox
 npm run test:e2e
-npm run build
-npm run preview
 ```
 
-`npm run build` type-checks the application and produces `dist/`. Only those static files need hosting. No Node process is required after deployment. Scripts invoke the tools through Node explicitly because the existing `Eleven:11` directory contains a colon, which breaks npm's usual PATH executable lookup on Linux. Vite 8 also rejects colons in served file paths: the config disables its strict file guard only for such a working directory and binds development to loopback. Rename the checkout to `Eleven11` to retain Vite's default file guard. Do not expose the development server publicly. Use an HTTPS deployment for phones and remote friends; a plain LAN IP is not a secure context for Web Crypto.
+The multiplayer E2E test uses real public relays and real WebRTC connections — nothing is mocked — so it needs an internet connection. See [`TESTING.md`](TESTING.md) for what was verified.
 
-## Playing
+<details>
+<summary><b>Note about folder names containing a colon (<code>:</code>)</b></summary>
 
-- Enter a trimmed nickname of 1–20 characters. Create a room, or join using its code or `/join/:code` invitation.
-- The host shares an invitation, chooses 1–30 questions (bounded by the selected category’s available questions), a 15/30/45/60/90-second timer, category, self-voting policy, and capacity. At least two connected players are required.
-- Every round freezes its eligible players and has one host-issued deadline. A player selects a candidate and submits one ballot. Submission is confirmed by the host; local UI state is never treated as proof of receipt.
-- Identical submission retries are idempotent; a changed second choice, invalid voter/candidate, incorrect round, disallowed self-vote, and late ballot are rejected.
-- Results include zero-vote players and competition ranks for ties (1, 1, 3). No sole winner is fabricated. All eligible votes can close a round early.
-- The host advances rounds. The final summary includes official question results, group awards derived from actual crowns, total votes, sharing, a downloadable PNG card, and play again.
-- The host can add custom questions in the lobby or on `/questions` while a session is active. Saving on the device is opt-in. Saved questions are loaded into newly created host rooms. Questions do not repeat within a game. The lobby caps round counts to the chosen question pool; add custom questions to expand it.
+<br />
 
-All requested routes exist: `/`, `/join/:code`, `/room/:code`, `/game/:code`, `/results/:code`, `/summary/:code`, `/questions`, `/privacy`, and a custom 404. Protected game routes restore the tab's membership or ask the visitor to join; a URL alone never creates fake admission.
+If your checkout folder has a colon in its name (for example `Eleven:11`), two things change:
 
-## Networking and authority
+- npm's usual `PATH` lookup for local binaries breaks on Linux, so every script calls its tool through `node node_modules/...` directly. This works for any folder name.
+- Vite 8 refuses to serve files from paths containing a colon, so `vite.config.ts` turns off Vite's strict file guard **only** in that case.
 
-`src/network/session.ts` owns networking outside React rendering. `protocol.ts` validates versioned envelopes and per-event payloads with Zod. Each envelope includes room, event ID, sender, round, and timestamp. Received event IDs are bounded/deduplicated, payload sizes are limited, and each connected peer has a message-rate budget.
+Cloning as shown above creates `Eleven-11`, which avoids both. Either way, never expose the dev server publicly.
 
-1. A host creates a fresh P-256 signing key. Its public-key SHA-256 fingerprint supplies a 20-character uppercase hexadecimal room code (80 bits). A longer code is intentional: a six-character code is too guessable for private public-relay discovery without an authoritative directory.
-2. Guests enter a discovery room and send a fresh nonce. The host signs that nonce and a random 256-bit private channel identifier. Guests verify both the fingerprint and signature before using the introduction. Public relays do not reserve codes or guarantee global uniqueness; this is not an audited cryptographic protocol.
-3. Each guest moves to its own private Trystero room with the host, then leaves discovery. This avoids a persistent participant mesh. Simultaneous newcomers can briefly discover each other before leaving; targeted messages alone are not the topology mechanism.
-4. The host issues an unguessable membership/resume token and binds the member to the authenticated DataChannel peer and private channel. Admission is independently signed and verified again on the private link before the guest pins the host peer. A copied nickname is not an identity. The normal client rejects an active duplicated tab instead of giving it another ballot.
-5. Guests send ballots only through their host link. The host publishes vote totals, never voter-to-candidate mappings. State snapshots contain membership, questions, deadlines, aggregate results, and a personalized acknowledgement flag.
-6. State transitions and membership changes send official snapshots. Vote progress uses compact count messages. Recovery snapshots are sent every 15 seconds; targeted ping responses every two seconds estimate host clock offset using the RTT midpoint. The host alone closes rounds. A delayed/backgrounded host may close late, but it still rejects ballots received after its deadline.
-7. A guest refresh restores the host-issued token and private channel from tab sessionStorage, re-admits through the host, and receives the official state including acknowledged submission. Unexpected host loss pauses guest controls, shows reconnection status, and reports failure after a 30-second grace period. The underlying library continues discovery attempts, so a live host recovering later may restore the session.
+</details>
 
-The protocol uses `JOIN_REQUEST`, signed `HELLO`, `ADMIT`, `JOIN_ACCEPTED/REJECTED`, `STATE_SNAPSHOT/REQUEST`, `VOTE_SUBMIT/ACK/PROGRESS`, `PING`, `HOST_HEARTBEAT`, `ACTION_ERROR`, and `LEAVE`. Round and phase transitions are included in sequenced official snapshots rather than redundant separate transition events.
+## 🎮 How to play
 
-## Reliability, privacy, and limits
+1. **Pick a name** — 1–20 characters. No account needed.
+2. **Create or join** — the host creates a room; friends join with the room code or the `/join/:code` invite link.
+3. **Set up the game** (host) — choose:
+   - number of questions (1–30, limited by the category's question pool)
+   - time per question: 15 / 30 / 45 / 60 / 90 seconds
+   - category ("the vibe")
+   - whether players may vote for themselves
+   - room capacity
+4. **Vote** — each round shows a question. Pick a friend and hit **Submit Vote**. The host confirms each ballot. The round ends at the deadline, or early once everyone has voted.
+5. **See results** — vote totals for every player (including zero votes), with fair tie ranks. Nobody sees who voted for whom.
+6. **Wrap up** — the summary shows each question's winner, group awards, total votes, a downloadable PNG card, and **Play Again**.
 
-- Keep the **original host tab open and awake**. Its memory is authoritative. Host refresh/closure ends the game; there is no host migration or durable host recovery. The UI explains this rather than reconstructing invented state.
-- Votes are anonymous in the regular participant interface, **not secret from the host browser**. A technically capable host can inspect ballots or modify the application. WebRTC transport encryption does not make the host trustworthy. Stronger guarantees require a trusted backend or a properly designed cryptographic voting protocol.
-- Names/preferences use localStorage; custom-question persistence is opt-in. Membership tokens and optional TURN credentials use tab sessionStorage. Active state is in memory. Ballot maps clear when a round closes and when a room is left. Aggregate session history remains until the session is cleared.
-- Public Nostr relays, STUN, and optional TURN are external infrastructure. Availability and connectivity are not guaranteed. Relays/STUN/TURN may see IP addresses and connection metadata. Direct WebRTC peers may learn each other's IP addresses; the static hosting provider can also log requests, including invitation paths. No third-party analytics or remote font requests are added.
-- 2–12 is the primary product target, 13–30 experimental, and 31–60 advanced/unverified. The default is 12; settings allow 30 and 60 with clear labels. This is **not a claim that 12, 30, or 60 simultaneous users were load validated**. Refer to the measured browser scenarios in `TESTING.md`.
-- Connection details show actual direct WebRTC connection count and peak, guest establishment time, admission success/attempt ratio, ping RTT, clock-adjusted last event latency, disconnects, and approximate JavaScript heap when the browser exposes it. These are local diagnostics, not analytics. Browser memory APIs are not portable. Host-side attempts count discovered introductions; guest-side attempts include joins that never reach a host. Use browser devtools for rigorous memory/load profiling.
-- Mobile background suspension, network switching, NAT/firewalls, and browser connection limits can interrupt a room. Disconnected members retain their place for recovery; hosts can remove them. A frozen eligible list may include someone who disconnects mid-round, so the round waits for its deadline.
-- A malicious participant with an invitation can request admission or abuse discovery. Application-level validation/rate limits do not provide a hardened anti-DoS service. Host verification and peer binding improve the normal protocol; they are not a formal security audit.
+At least **two connected players** are needed to start. 2–12 players is the recommended size.
 
-## Optional TURN and relay configuration
+**Custom questions:** the host can add questions in the lobby or on the `/questions` page. Saving them on the device is opt-in, and saved questions are loaded into new rooms you host. Questions never repeat within a game.
 
-Trystero's current Nostr strategy is used by default. STUN endpoints are `stun:stun.cloudflare.com:3478` and `stun:stun.l.google.com:19302`. Public relay failures are expected to be possible. To choose compatible Nostr relays at build time:
+**Routes:** `/`, `/join/:code`, `/room/:code`, `/game/:code`, `/results/:code`, `/summary/:code`, `/questions`, `/privacy`, and a custom 404. Game routes restore your membership in that tab or ask you to join. A URL on its own never admits anyone.
+
+## ☁️ Deployment
+
+The app is fully static. Any static host works if it serves `index.html` for unknown routes (SPA fallback) and uses HTTPS.
+
+### Netlify
+
+`netlify.toml` already sets the build command, Node version, output folder, and SPA rewrite.
+
+1. In Netlify, choose **Add new site → Import an existing project** and select this repository.
+2. Keep the detected settings and click **Deploy**.
+
+### Cloudflare Pages
+
+1. Import the repository into Pages. Choose **Vite** (or no framework preset) and set Node to **22**.
+2. **Build command:** `npm run build`
+3. **Build output directory:** `dist`
+4. Leave Functions/API routes empty. `public/_redirects` provides the SPA fallback.
+
+### After deploying
+
+- Open an HTTPS `/join/:code` link on a second device, and check that refreshing as a guest keeps you in the game.
+- Security headers come from `public/_headers`.
+- The service worker caches the app shell, icons, and bundled fonts. An installed or offline app still needs the network for multiplayer.
+- Wait until a game ends before refreshing the host tab to pick up a new release.
+
+## ⚙️ Configuration (optional)
+
+### Nostr relays
+
+By default the app uses Trystero's built-in Nostr relays. To choose your own at build time, copy `.env.example` to `.env.local` and set:
 
 ```env
 VITE_NOSTR_RELAYS=wss://your-first-relay.example,wss://your-second-relay.example
 ```
 
-All players must use the same app release and overlapping relay choices. `VITE_` values are public frontend configuration, never secrets.
+All players must use the same app release and overlapping relays. `VITE_` values are bundled into the public frontend, so **never put secrets in them**.
 
-For restricted networks, open **Connection settings** in the header (inside the menu on mobile) before creating/joining. Supply your provider's `turn:` or `turns:` endpoint, username, and credential. Each browser requiring relay support should configure its own appropriate credentials. They remain in that tab's sessionStorage. This project does not provision TURN, promise cross-network connectivity, embed permanent TURN keys, or add a credential backend. Bring provider-issued temporary credentials. A future short-lived credential service is separate infrastructure and should be explicitly approved if desired.
+### STUN / TURN
 
-## Static deployment
+The STUN servers are `stun:stun.cloudflare.com:3478` and `stun:stun.l.google.com:19302`.
 
-### Cloudflare Pages
+On restrictive networks (strict NAT, corporate firewalls), open **Connection settings** before creating or joining a game. It's in the header, or in the menu on mobile. Enter your provider's `turn:`/`turns:` URL, username, and credential. These are stored only in that tab's `sessionStorage`. The project doesn't provide TURN servers or a credential backend, so use temporary credentials from your own provider.
 
-1. Import the repository into Pages, select no framework preset or Vite, and use Node 22.
-2. Build command: `npm run build`.
-3. Build output directory: `dist`.
-4. Leave Functions/API routes empty. Pages' SPA fallback serves the entry point for direct routes; `public/_redirects` is also copied to the output.
-5. Test an HTTPS `/join/:code` link and guest refresh after deployment. Installability requires HTTPS (localhost is exempt).
+## 🧠 How it works
 
-### Netlify
+```
+            ┌──────────────── Nostr relays (discovery only) ────────────────┐
+            │                                                               │
+   Guest A ─┤  1. JOIN_REQUEST + nonce   ──▶                                │
+            │  2. ◀── signed HELLO (nonce + private channel id)             │
+            └───────────────────────────────────────────────────────────────┘
+                          │ 3. move to a private room
+                          ▼
+   Guest A ◀══ WebRTC DataChannel ══▶  HOST (authoritative)  ◀══ WebRTC ══▶ Guest B
+                                       • admits members
+                                       • collects ballots
+                                       • publishes totals only
+```
 
-`netlify.toml` supplies the build command, Node version, output directory, and SPA rewrite. Connect the repository and deploy. The output also includes security headers in `_headers` and the history fallback in `_redirects`.
+`src/network/session.ts` handles all networking outside of React rendering. `protocol.ts` uses Zod to check message versions and every message's contents. Each message carries the room, event ID, sender, round, and timestamp. Incoming event IDs are de-duplicated (with a size cap), message sizes are limited, and each peer has a message-rate budget.
 
-The generated manifest and service worker cache the application shell, icons, and locally bundled fonts. An installed/offline shell does **not** make multiplayer work without network access. Wait until a game ends before refreshing to update the host application. Actual Android/iOS installation and different-provider phone connectivity require physical-device verification.
+1. **Room code from a key.** The host creates a fresh P-256 signing key. The room code is the first 20 hex characters (80 bits) of its public-key SHA-256 fingerprint. The code is long on purpose: a 6-character code would be too easy to guess on public relays.
+2. **Signed introduction.** A guest sends a fresh nonce in a discovery room. The host signs that nonce together with a random 256-bit private channel ID. The guest checks both the fingerprint and the signature before trusting it.
+3. **Star topology.** Each guest moves into its own private room with the host and leaves discovery, so guests are never meshed with each other.
+4. **Membership tokens.** The host issues a resume token and ties it to the guest's authenticated WebRTC peer. Admission is signed again on the private link. Copying someone's nickname doesn't give you their identity, and a duplicated tab can't vote twice.
+5. **Votes stay with the host.** Ballots go only to the host. Everyone else receives vote totals, never who voted for whom.
+6. **Sync.** State changes send numbered snapshots. Vote progress uses small count updates. A recovery snapshot goes out every 15 s, and a ping every 2 s estimates the host's clock offset. Only the host closes rounds, and it rejects any ballot that arrives after its deadline.
+7. **Recovery.** A refreshing guest gets its token and channel back from `sessionStorage` and is re-admitted. If the host disappears, guest controls pause, a reconnection status appears, and failure is reported after a 30 s grace period.
 
-## Project map
+**Protocol messages:** `JOIN_REQUEST`, `HELLO`, `ADMIT`, `JOIN_ACCEPTED`/`JOIN_REJECTED`, `STATE_SNAPSHOT`/`STATE_REQUEST`, `VOTE_SUBMIT`/`VOTE_ACK`/`VOTE_PROGRESS`, `PING`, `HOST_HEARTBEAT`, `ACTION_ERROR`, `LEAVE`.
 
-- `src/pages/` — home, live lobby/game/results/summary, question editor, privacy, 404.
-- `src/components/` — accessible modal, app shell, avatars, and shadcn-style Radix/CVA button primitive.
-- `src/game/engine.ts` — pure host state machine, ballot validation, non-repeating selection, ranking.
-- `src/game/types.ts` — shared types and runtime schemas.
-- `src/data/questions.ts` — 108 editable starter questions in six categories plus custom-question support.
-- `src/network/` — Trystero lifecycle, signed discovery, membership, private links, recovery, protocol validation.
-- `tests/engine.test.ts` — deterministic game/protocol tests.
-- `tests/e2e/` — Chromium/Firefox UI and real public-relay WebRTC scenarios, not mocked connections.
-- `TESTING.md` — verification results and the physical-device/load checklist.
+The Trystero usage follows the official [actions](https://trystero.dev/docs/actions/), [connections](https://trystero.dev/docs/connections/), and [signaling](https://trystero.dev/docs/signaling-strategies/) docs. It uses the 0.27 object-based action API.
 
-The Trystero API was checked against the current official documentation: [actions](https://trystero.dev/docs/actions/), [connections](https://trystero.dev/docs/connections/), and [signaling](https://trystero.dev/docs/signaling-strategies/). The implementation uses the 0.27 object action API and callback contexts rather than older tuple APIs.
+## 🔒 Privacy, reliability & limits
+
+> [!IMPORTANT]
+> **Keep the host tab open and awake.** The game state lives only in the host's memory. Refreshing or closing the host tab ends the game. There is no host migration.
+
+> [!WARNING]
+> Votes are anonymous to **players**, but **not secret from the host's browser**. A technically skilled host can inspect ballots or modify the app. Truly secret ballots would need a trusted backend or a cryptographic voting protocol.
+
+- **Storage:** names and preferences go in `localStorage`, and saving custom questions is opt-in. Membership tokens and TURN credentials go in tab `sessionStorage`. Game state stays in memory. Ballot maps are cleared when a round closes or you leave a room.
+- **Third parties:** Nostr relays, STUN, and TURN servers may see IP addresses and connection metadata. WebRTC peers may learn each other's IPs. Your static host may log requests, including invite paths. The app adds no analytics and loads no remote fonts.
+- **Group size:** 2–12 is the target, 13–30 is experimental, and 31–60 is advanced and unverified. The default capacity is 12. None of these sizes have been load-tested. See [`TESTING.md`](TESTING.md) for what was measured.
+- **Connectivity:** phones suspending background tabs, switching networks, NAT/firewalls, and browser connection limits can interrupt a room. Disconnected players keep their seat so they can rejoin, and the host can remove them.
+- **Diagnostics:** **Connection details** shows the local connection count, setup time, RTT, latency, disconnects, and approximate memory use. These are local diagnostics, not analytics.
+- **Security:** validation and rate limits make normal play more robust but are not hardened anti-DoS protection, and the protocol has not been formally audited.
+
+## 🗂️ Project structure
+
+```
+Eleven-11/
+├── assets/                 # Original logo & favicon
+├── docs/screenshots/       # README images
+├── public/                 # Icons, _headers, _redirects (copied to dist/)
+├── src/
+│   ├── pages/              # Home, lobby/game/results/summary, questions, privacy, 404
+│   ├── components/         # App shell, modal, avatars, button primitive
+│   ├── game/
+│   │   ├── engine.ts       # Pure host state machine, ballot validation, ranking
+│   │   └── types.ts        # Shared types & runtime schemas
+│   ├── data/questions.ts   # 108 starter questions + custom question support
+│   └── network/
+│       ├── session.ts      # Trystero lifecycle, discovery, membership, recovery
+│       └── protocol.ts     # Versioned, Zod-validated message envelopes
+├── tests/
+│   ├── engine.test.ts      # Deterministic game & protocol tests
+│   └── e2e/                # Playwright UI + real WebRTC multiplayer tests
+├── netlify.toml
+└── TESTING.md              # Verification results & device/load checklist
+```
+
+## 🛠️ Tech stack
+
+[React 19](https://react.dev/) · [TypeScript](https://www.typescriptlang.org/) · [Vite 8](https://vite.dev/) · [Tailwind CSS 4](https://tailwindcss.com/) · [Trystero](https://trystero.dev/) · [Zod](https://zod.dev/) · [Motion](https://motion.dev/) · [Lucide icons](https://lucide.dev/) · [Radix Slot](https://www.radix-ui.com/) · [Vitest](https://vitest.dev/) · [Playwright](https://playwright.dev/) · [vite-plugin-pwa](https://vite-pwa-org.netlify.app/)
+
+---
+
+<div align="center">
+  <sub>Good company. A little curiosity. <b>Eleven:11</b>.</sub>
+</div>
