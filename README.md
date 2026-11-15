@@ -40,36 +40,14 @@ A serverless party game where friends vote on who's most likely to… — peer-t
 
 <table>
   <tr>
-    <td align="center" width="50%">
-      <img src="docs/screenshots/lobby.png" alt="Lobby with three players and game settings" /><br />
-      <sub><b>Lobby</b> — share the invite, see who's connected, set up the game</sub>
-    </td>
-    <td align="center" width="50%">
-      <img src="docs/screenshots/vote.png" alt="Voting screen with countdown timer" /><br />
-      <sub><b>Voting</b> — pick a friend before the timer runs out</sub>
-    </td>
+    <td align="center" width="33%"><img src="docs/screenshots/how-to-play.png" alt="How to play dialog" width="100%" /><br /><sub><b>How to play</b></sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/lobby.png" alt="Lobby with players and game settings" width="100%" /><br /><sub><b>Lobby</b></sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/questions.png" alt="Question library with category filters" width="100%" /><br /><sub><b>Question library</b></sub></td>
   </tr>
   <tr>
-    <td align="center">
-      <img src="docs/screenshots/results.png" alt="Round results with vote bars" /><br />
-      <sub><b>Results</b> — vote totals and the crown, no voter names</sub>
-    </td>
-    <td align="center">
-      <img src="docs/screenshots/summary.png" alt="End of game summary" /><br />
-      <sub><b>Summary</b> — awards, stats, and a shareable card</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="docs/screenshots/questions.png" alt="Question library with category filters" /><br />
-      <sub><b>Question library</b> — browse, filter, and add your own</sub>
-    </td>
-    <td align="center">
-      <img src="docs/screenshots/home-mobile.png" alt="Home page on mobile" width="45%" />
-      &nbsp;
-      <img src="docs/screenshots/vote-mobile.png" alt="Voting on mobile" width="45%" /><br />
-      <sub><b>Mobile</b> — built for phones around the table</sub>
-    </td>
+    <td align="center" width="33%"><img src="docs/screenshots/vote.png" alt="Voting screen with countdown timer" width="100%" /><br /><sub><b>Voting</b></sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/results.png" alt="Round results with vote bars" width="100%" /><br /><sub><b>Results</b></sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/summary.png" alt="End of game summary" width="100%" /><br /><sub><b>Summary</b></sub></td>
   </tr>
 </table>
 
