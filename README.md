@@ -15,7 +15,7 @@ A serverless party game where friends vote on who's most likely to… — peer-t
 ![WebRTC](https://img.shields.io/badge/WebRTC-Trystero_0.27-333333?logo=webrtc&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
 
-[Screenshots](#-screenshots) · [Installation](#-installation) · [How to play](#-how-to-play) · [Deployment](#-deployment) · [How it works](#-how-it-works) · [Privacy & limits](#-privacy-reliability--limits)
+[Screenshots](#-screenshots) · [Design](#-design) · [Installation](#-installation) · [How to play](#-how-to-play) · [Deployment](#-deployment) · [How it works](#-how-it-works) · [Privacy & limits](#-privacy-reliability--limits)
 
 <br />
 
@@ -27,6 +27,7 @@ A serverless party game where friends vote on who's most likely to… — peer-t
 
 ## ✨ Features
 
+- 👾 **Cute pixel look** — pixel display type, chunky sticker-style cards with hard offset shadows, pastel colours, and buttons that squish when pressed. See [Design](#-design).
 - 🎉 **Zero sign-ups** — pick a nickname, create a room, share the link.
 - 🔗 **Truly peer-to-peer** — Trystero (Nostr discovery) + WebRTC DataChannels. No game server, database, or analytics.
 - 🗳️ **Anonymous voting** — players only ever see vote totals, never who voted for whom.
@@ -36,6 +37,7 @@ A serverless party game where friends vote on who's most likely to… — peer-t
 - 🔊 **Sound effects** — countdown clinks for the last five seconds, vote chimes, drumroll, and a winner fanfare. All sounds are generated in the browser (no audio files), with a mute button in the header.
 - 🏆 **End-of-game summary** — awards with medals, total votes, a downloadable PNG card, and play again.
 - 📱 **Mobile-first & installable** — responsive layout, PWA manifest, offline app shell.
+- ⚡ **Fast first load** — the home page ships ~95 kB of gzipped JS; networking and animation code loads in the background. See [Performance](#-performance).
 - 🔄 **Refresh-safe guests** — a guest reloading the tab is re-admitted with their vote intact.
 
 ## 📸 Screenshots
@@ -54,6 +56,23 @@ A serverless party game where friends vote on who's most likely to… — peer-t
 </table>
 
 > These screenshots were captured from a real three-player game running over public Nostr relays — not mockups.
+
+## 🎨 Design
+
+The UI is a soft, retro "pixel sticker" style. All of it lives in [`src/styles.css`](src/styles.css): design tokens sit in `:root` at the top, and the **Pixel skin** section at the bottom holds the component styling.
+
+| Element | Style |
+| --- | --- |
+| **Headings, buttons, labels, numbers** | [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans) (`--font-pixel`) |
+| **Tiny all-caps labels** (eyebrows, pills, stat captions) | [Silkscreen](https://fonts.google.com/specimen/Silkscreen) (`--font-tiny`), which is built to stay crisp at small sizes |
+| **Body text & long descriptions** | DM Sans (`--font-body`), kept for readability |
+| **Room codes** | System monospace, so `5`/`S` and `8`/`B` can't be confused when typing |
+| **Boxes** (panels, cards, inputs, modals) | 2px ink outline (`--line`), rounded corners, and a hard offset shadow (`--pop-sm` / `--pop` / `--pop-lg`) |
+| **Colours** | Pastel fills (`--lavender`, `--peach`, `--mint`, `--butter`, `--pink`, `--sky`) on a cream background with a faint pixel dot grid |
+| **Buttons** | Lift on hover and press down into their shadow on click. **Let's play** shows a pulsing ring when the room is ready |
+| **Small details** | Square "pixel" status dots, numbered step badges, striped pixel progress bars, and a pixel-styled downloadable summary card |
+
+All fonts are bundled with the app through Fontsource. Nothing loads from Google's servers.
 
 ## 🚀 Installation
 
@@ -189,7 +208,7 @@ The app is fully static. Any static host works if it serves `index.html` for unk
 
 - Open an HTTPS `/join/:code` link on a second device, and check that refreshing as a guest keeps you in the game.
 - Security headers come from `public/_headers`.
-- The service worker caches the app shell, icons, and bundled fonts. An installed or offline app still needs the network for multiplayer.
+- The service worker precaches the app shell, icons, and the Latin font files. Other font subsets (only used for non-Latin names) are cached the first time they're needed. An installed or offline app still needs the network for multiplayer.
 - Wait until a game ends before refreshing the host tab to pick up a new release.
 
 ## ⚙️ Configuration (optional)
@@ -255,6 +274,22 @@ The Trystero usage follows the official [actions](https://trystero.dev/docs/acti
 - **Diagnostics:** **Connection details** shows the local connection count, setup time, RTT, latency, disconnects, and approximate memory use. These are local diagnostics, not analytics.
 - **Security:** validation and rate limits make normal play more robust but are not hardened anti-DoS protection, and the protocol has not been formally audited.
 
+## ⚡ Performance
+
+| | Before | After |
+| --- | --- | --- |
+| JS needed for the home page (gzip) | ~252 kB (one bundle) | **~95 kB** |
+| Font files | DM Sans + Plus Jakarta Sans | DM Sans + Pixelify Sans (12 kB) + Silkscreen (8 kB) |
+
+How:
+
+- **Route code-splitting.** The game room (Motion animations, confetti) and the question library load on demand with `React.lazy` ([`src/lazy.ts`](src/lazy.ts)).
+- **Lazy networking.** The home page doesn't import Trystero/WebRTC or Zod. They load once the browser is idle (`requestIdleCallback`), so **Create** and **Join** are still instant. Hovering **The questions** in the header prefetches that page.
+- **Separate React chunk.** React, React DOM and React Router get their own long-cached file, so a new app release doesn't force visitors to re-download them.
+- **Fewer dependencies.** `tailwind-merge` and `class-variance-authority` were removed. The button component now only needs `clsx`.
+- **Cheaper animations.** Infinite animations use only `transform` and `opacity`, which the GPU handles: the floating hero card, online-dot pings and the "ready" ring. Nothing animates `box-shadow` every frame anymore. Dialogs use a flat tint instead of a full-screen `backdrop-filter` blur, which made opening them slow on low-end phones.
+- **Leaner precache.** The service worker skips font subsets most players never need.
+
 ## 🗂️ Project structure
 
 ```
@@ -263,6 +298,8 @@ Eleven-11/
 ├── docs/screenshots/       # README images
 ├── public/                 # Icons, _headers, _redirects (copied to dist/)
 ├── src/
+│   ├── styles.css          # Design tokens + pixel skin (see Design)
+│   ├── lazy.ts             # On-demand route/networking loaders & idle prefetch
 │   ├── pages/              # Home, lobby/game/results/summary, questions, privacy, 404
 │   ├── components/         # App shell, modal, avatars, button primitive
 │   ├── game/
@@ -271,7 +308,9 @@ Eleven-11/
 │   ├── data/questions.ts   # 108 starter questions + custom question support
 │   └── network/
 │       ├── session.ts      # Trystero lifecycle, discovery, membership, recovery
-│       └── protocol.ts     # Versioned, Zod-validated message envelopes
+│       ├── protocol.ts     # Versioned, Zod-validated message envelopes
+│       ├── useGame.ts      # React hook for the session store
+│       └── code.ts         # Dependency-free room-code check for the home page
 ├── tests/
 │   ├── engine.test.ts      # Deterministic game & protocol tests
 │   └── e2e/                # Playwright UI + real WebRTC multiplayer tests
@@ -281,7 +320,7 @@ Eleven-11/
 
 ## 🛠️ Tech stack
 
-[React 19](https://react.dev/) · [TypeScript](https://www.typescriptlang.org/) · [Vite 8](https://vite.dev/) · [Tailwind CSS 4](https://tailwindcss.com/) · [Trystero](https://trystero.dev/) · [Zod](https://zod.dev/) · [Motion](https://motion.dev/) · [Lucide icons](https://lucide.dev/) · [Radix Slot](https://www.radix-ui.com/) · [Vitest](https://vitest.dev/) · [Playwright](https://playwright.dev/) · [vite-plugin-pwa](https://vite-pwa-org.netlify.app/)
+[React 19](https://react.dev/) · [TypeScript](https://www.typescriptlang.org/) · [Vite 8](https://vite.dev/) · [Tailwind CSS 4](https://tailwindcss.com/) · [Pixelify Sans](https://fontsource.org/fonts/pixelify-sans) & [Silkscreen](https://fontsource.org/fonts/silkscreen) via Fontsource · [Trystero](https://trystero.dev/) · [Zod](https://zod.dev/) · [Motion](https://motion.dev/) · [Lucide icons](https://lucide.dev/) · [Radix Slot](https://www.radix-ui.com/) · [clsx](https://github.com/lukeed/clsx) · [Vitest](https://vitest.dev/) · [Playwright](https://playwright.dev/) · [vite-plugin-pwa](https://vite-pwa-org.netlify.app/)
 
 ---
 

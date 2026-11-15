@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { motion } from "motion/react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -17,10 +16,35 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { useGame } from "../components/shared";
-import { session } from "../network/session";
-import { codeValid } from "../network/protocol";
-import { readSavedQuestions } from "../data/questions";
+import { codeValid } from "../network/code";
+import { loadRoom, loadSession, whenIdle } from "../lazy";
+
+/**
+ * The home page paints without the networking bundle. Once the browser is
+ * idle we load it (so Create/Join feel instant) and watch for an active room.
+ */
+function useActiveRoom() {
+  const [code, setCode] = useState<string>();
+  useEffect(() => {
+    let alive = true,
+      off: (() => void) | undefined;
+    const cancel = whenIdle(() => {
+      void loadRoom();
+      void loadSession().then(({ session }) => {
+        if (!alive) return;
+        const sync = () => setCode(session.getSnapshot().state?.code);
+        sync();
+        off = session.subscribe(sync);
+      });
+    });
+    return () => {
+      alive = false;
+      cancel();
+      off?.();
+    };
+  }, []);
+  return code;
+}
 export function HeroArt() {
   return (
     <div className="hero-art" aria-hidden="true">
@@ -32,42 +56,40 @@ export function HeroArt() {
       <div className="floating-label">
         <span>✧</span> A little friendly exposure.
       </div>
-      <motion.div
-        className="question-card"
-        animate={{ y: [0, -7, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <div className="card-eyebrow">
-          <span>
-            <Sparkles size={13} /> THE GROUP HAS QUESTIONS
-          </span>
-          <span>01 / ∞</span>
-        </div>
-        <div className="big-quotes">“</div>
-        <h2>
-          Who’s most likely to
-          <br /> say “one more episode”
-          <br /> <em>five episodes ago?</em>
-        </h2>
-        <div className="art-vote">
-          <div className="emoji-avatar">😴</div>
-          <div>
-            <strong>We all know someone.</strong>
-            <span>Let the votes do the talking.</span>
+      <div className="question-card-float">
+        <div className="question-card">
+          <div className="card-eyebrow">
+            <span>
+              <Sparkles size={13} /> THE GROUP HAS QUESTIONS
+            </span>
+            <span>01 / ∞</span>
           </div>
-          <span className="vote-check">
-            <Check size={16} />
-          </span>
+          <div className="big-quotes">“</div>
+          <h2>
+            Who’s most likely to
+            <br /> say “one more episode”
+            <br /> <em>five episodes ago?</em>
+          </h2>
+          <div className="art-vote">
+            <div className="emoji-avatar">😴</div>
+            <div>
+              <strong>We all know someone.</strong>
+              <span>Let the votes do the talking.</span>
+            </div>
+            <span className="vote-check">
+              <Check size={16} />
+            </span>
+          </div>
+          <div className="art-card-bottom">
+            <span>
+              <span className="tiny-dot" /> Votes stay between us*
+            </span>
+            <span>
+              00:30 <Clock3 size={12} />
+            </span>
+          </div>
         </div>
-        <div className="art-card-bottom">
-          <span>
-            <span className="tiny-dot" /> Votes stay between us*
-          </span>
-          <span>
-            00:30 <Clock3 size={12} />
-          </span>
-        </div>
-      </motion.div>
+      </div>
       <div className="reaction reaction-laugh">😂</div>
       <div className="reaction reaction-eyes">👀</div>
       <div className="anonymous-sticker">
@@ -87,7 +109,7 @@ export function HeroArt() {
 export function Home() {
   const { code: invite } = useParams();
   const navigate = useNavigate();
-  const game = useGame();
+  const activeRoom = useActiveRoom();
   const [mode, setMode] = useState<"create" | "join">(
     invite ? "join" : "create",
   );
@@ -114,6 +136,10 @@ export function Home() {
     setBusy(true);
     localStorage.setItem("eleven-name", clean);
     try {
+      const [{ session }, { readSavedQuestions }] = await Promise.all([
+        loadSession(),
+        import("../data/questions"),
+      ]);
       if (mode === "create") {
         const c = await session.create(clean);
         for (const q of readSavedQuestions()) session.custom(q);
@@ -234,8 +260,8 @@ export function Home() {
                 introductions.
               </p>
             </form>
-            {game.state && (
-              <Link className="text-link" to={`/room/${game.state.code}`}>
+            {activeRoom && (
+              <Link className="text-link" to={`/room/${activeRoom}`}>
                 Return to your active room <ArrowRight size={14} />
               </Link>
             )}

@@ -14,6 +14,7 @@ import {
 import { Button } from "./ui/button";
 import { Modal } from "./shared";
 import { sfx, soundStore } from "../lib/sound";
+import { loadQuestions } from "../lazy";
 
 function SoundToggle() {
   const on = useSyncExternalStore(soundStore.subscribe, soundStore.enabled);
@@ -164,7 +165,12 @@ export function Header() {
           >
             How to play
           </button>
-          <Link to="/questions" onClick={() => setMenu(false)}>
+          <Link
+            to="/questions"
+            onClick={() => setMenu(false)}
+            onPointerEnter={() => void loadQuestions()}
+            onFocus={() => void loadQuestions()}
+          >
             The questions <ArrowUpRight size={14} />
           </Link>
           <button

@@ -1,10 +1,31 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useLocation, Routes, Route } from "react-router-dom";
+import { LoaderCircle } from "lucide-react";
 import { Header, Footer } from "./components/Shell";
 import { Home } from "./pages/Home";
-import { RoomShell } from "./pages/GameRoom";
-import { Questions } from "./pages/Questions";
 import { Privacy, NotFound } from "./pages/Information";
+import { loadQuestions, loadRoom } from "./lazy";
+
+// Game screens pull in networking + animation code, so they load on demand
+// (and are prefetched from the home page while the browser is idle).
+const RoomRoute = lazy(() =>
+  loadRoom().then((m) => ({ default: m.RoomRoute })),
+);
+const Questions = lazy(() =>
+  loadQuestions().then((m) => ({ default: m.Questions })),
+);
+
+function RouteLoading() {
+  return (
+    <main className="center-state" aria-busy="true">
+      <div className="state-icon">
+        <LoaderCircle className="spin" />
+      </div>
+      <p>Loading…</p>
+    </main>
+  );
+}
+
 export default function App() {
   const location = useLocation();
   useEffect(() => {
@@ -18,16 +39,18 @@ export default function App() {
       </a>
       <Header />
       <div id="page-content" tabIndex={-1}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/join/:code" element={<Home />} />
-          {["room", "game", "results", "summary"].map((p) => (
-            <Route key={p} path={`/${p}/:code`} element={<RoomShell />} />
-          ))}
-          <Route path="/questions" element={<Questions />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<RouteLoading />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/join/:code" element={<Home />} />
+            {["room", "game", "results", "summary"].map((p) => (
+              <Route key={p} path={`/${p}/:code`} element={<RoomRoute />} />
+            ))}
+            <Route path="/questions" element={<Questions />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </div>
       <Footer />
     </>

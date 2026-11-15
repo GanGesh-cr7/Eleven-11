@@ -5,6 +5,21 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   // Vite 8 rejects colons in absolute paths. This local-only workaround supports Eleven:11.
   server: { host: "127.0.0.1", fs: { strict: !process.cwd().includes(":") } },
+  build: {
+    rolldownOptions: {
+      output: {
+        // React rarely changes between releases, so give it its own long-cached chunk.
+        codeSplitting: {
+          groups: [
+            {
+              name: "react",
+              test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -26,7 +41,23 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,png,woff2}"],
+        // Precache the app plus Latin font files. Other font subsets (only
+        // fetched for non-Latin names) are cached the first time they're used.
+        globPatterns: [
+          "**/*.{js,css,html,png}",
+          "**/*-latin-wght-normal-*.woff2",
+          "**/*-latin-400-normal-*.woff2",
+        ],
+        runtimeCaching: [
+          {
+            urlPattern: /\.woff2$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "fonts",
+              expiration: { maxEntries: 20 },
+            },
+          },
+        ],
         navigateFallbackDenylist: [/^\/_/],
       },
     }),

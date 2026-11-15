@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import {
   ArrowRight,
   Check,
@@ -23,7 +23,8 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Avatar, Modal, useGame, title } from "../components/shared";
+import { Avatar, Modal, title } from "../components/shared";
+import { useGame } from "../network/useGame";
 import { session } from "../network/session";
 import { categories, questionSchema, type Settings } from "../game/types";
 import { questions, readSavedQuestions } from "../data/questions";
@@ -121,6 +122,15 @@ export function ShareRoom({ code }: { code: string }) {
         </div>
       )}
     </>
+  );
+}
+
+/** Route entry for the lazily loaded game chunk; Motion only ships with it. */
+export function RoomRoute() {
+  return (
+    <MotionConfig reducedMotion="user">
+      <RoomShell />
+    </MotionConfig>
   );
 }
 
@@ -1116,36 +1126,65 @@ export function Summary() {
       setCopied(false);
     }
   }
-  function download() {
+  async function download() {
+    const pixel = '"Pixelify Sans Variable", sans-serif';
+    // Make sure the pixel font is ready before drawing with it on the canvas.
+    await Promise.all(
+      [`700 64px ${pixel}`, `500 32px ${pixel}`].map((f) =>
+        document.fonts.load(f).catch(() => undefined),
+      ),
+    );
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1350;
     const c = canvas.getContext("2d")!;
-    c.fillStyle = "#F5F0E8";
+    const ink = "#3B2C5C";
+    c.fillStyle = "#FBF6EE";
     c.fillRect(0, 0, 1080, 1350);
-    c.fillStyle = "#49356F";
-    c.font = "bold 64px sans-serif";
-    c.fillText("Eleven:11", 80, 130);
-    c.font = "bold 70px sans-serif";
-    c.fillText("A night to remember.", 80, 300);
-    c.font = "32px sans-serif";
+    c.fillStyle = "#E6DCF3";
+    for (let x = 18; x < 1080; x += 36)
+      for (let y = 18; y < 1350; y += 36) c.fillRect(x, y, 4, 4);
+    const box = (x: number, y: number, w: number, h: number, fill: string) => {
+      c.fillStyle = ink;
+      c.beginPath();
+      c.roundRect(x + 10, y + 10, w, h, 28);
+      c.fill();
+      c.fillStyle = fill;
+      c.strokeStyle = ink;
+      c.lineWidth = 5;
+      c.beginPath();
+      c.roundRect(x, y, w, h, 28);
+      c.fill();
+      c.stroke();
+    };
+    box(60, 60, 950, 400, "#ECE3FB");
+    c.fillStyle = "#8064C8";
+    c.font = `700 64px ${pixel}`;
+    c.fillText("Eleven:11", 110, 160);
+    c.fillStyle = "#2B2240";
+    c.font = `700 70px ${pixel}`;
+    c.fillText("A night to remember.", 110, 300);
+    c.font = `500 32px ${pixel}`;
     c.fillText(
       `${history.length} questions · ${s!.players.length} friends · ${total} votes`,
-      80,
+      110,
       380,
     );
-    c.font = "bold 38px sans-serif";
-    c.fillText("The group’s headline makers", 80, 510);
+    box(60, 510, 950, 640, "#FFFDF9");
+    c.fillStyle = "#2B2240";
+    c.font = `700 40px ${pixel}`;
+    c.fillText("The group’s headline makers", 110, 590);
+    c.font = `500 32px ${pixel}`;
     awards.slice(0, 8).forEach((p, i) => {
-      c.font = "32px sans-serif";
       c.fillText(
         `${i + 1}. ${p.name} · ${p.count} ${p.count === 1 ? "crown" : "crowns"}`,
-        80,
-        600 + i * 65,
+        110,
+        670 + i * 58,
       );
     });
-    c.font = "27px sans-serif";
-    c.fillText("Your friends. Your votes. Your secrets.", 80, 1230);
+    c.fillStyle = "#49356F";
+    c.font = `500 30px ${pixel}`;
+    c.fillText("Your friends. Your votes. Your secrets.", 80, 1250);
     const a = document.createElement("a");
     a.download = "our-eleven11-night.png";
     a.href = canvas.toDataURL();

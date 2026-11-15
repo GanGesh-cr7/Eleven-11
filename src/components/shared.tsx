@@ -1,10 +1,7 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { Button } from "./ui/button";
-import { session } from "../network/session";
 import type { Player } from "../game/types";
-export const useGame = () =>
-  useSyncExternalStore(session.subscribe, session.getSnapshot);
 
 export const title = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

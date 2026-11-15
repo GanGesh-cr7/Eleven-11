@@ -77,7 +77,7 @@ export async function codeForKey(key: string) {
     .join("")
     .toUpperCase();
 }
-export const codeValid = (code: string) => /^[A-F0-9]{20}$/.test(code);
+export { codeValid } from "./code";
 export const toHex = (buffer: ArrayBuffer) =>
   Array.from(new Uint8Array(buffer), (b) =>
     b.toString(16).padStart(2, "0"),
