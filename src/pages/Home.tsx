@@ -1,16 +1,14 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  Check,
-  Clock3,
   Link2,
   LoaderCircle,
   MessageCircle,
   Plus,
   ShieldCheck,
-  Sparkles,
   Trophy,
   Users,
   Zap,
@@ -45,228 +43,67 @@ function useActiveRoom() {
   }, []);
   return code;
 }
-export function HeroArt() {
-  return (
-    <div className="hero-art" aria-hidden="true">
-      <div className="orbit orbit-one" />
-      <div className="orbit orbit-two" />
-      <span className="art-spark spark-one">✦</span>
-      <span className="art-spark spark-two">✧</span>
-      <span className="art-dot" />
-      <div className="floating-label">
-        <span>✧</span> A little friendly exposure.
-      </div>
-      <div className="question-card-float">
-        <div className="question-card">
-          <div className="card-eyebrow">
-            <span>
-              <Sparkles size={13} /> THE GROUP HAS QUESTIONS
-            </span>
-            <span>01 / ∞</span>
-          </div>
-          <div className="big-quotes">“</div>
-          <h2>
-            Who’s most likely to
-            <br /> say “one more episode”
-            <br /> <em>five episodes ago?</em>
-          </h2>
-          <div className="art-vote">
-            <div className="emoji-avatar">😴</div>
-            <div>
-              <strong>We all know someone.</strong>
-              <span>Let the votes do the talking.</span>
-            </div>
-            <span className="vote-check">
-              <Check size={16} />
-            </span>
-          </div>
-          <div className="art-card-bottom">
-            <span>
-              <span className="tiny-dot" /> Votes stay between us*
-            </span>
-            <span>
-              00:30 <Clock3 size={12} />
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="reaction reaction-laugh">😂</div>
-      <div className="reaction reaction-eyes">👀</div>
-      <div className="anonymous-sticker">
-        <ShieldCheck size={17} />
-        <span>
-          No names on the votes.
-          <br /> <b>Just a little suspense.</b>
-        </span>
-      </div>
-      <span className="art-caption">
-        *Hidden from players. Counted by the host.
-      </span>
-    </div>
-  );
-}
-
 export function Home() {
-  const { code: invite } = useParams();
-  const navigate = useNavigate();
   const activeRoom = useActiveRoom();
-  const [mode, setMode] = useState<"create" | "join">(
-    invite ? "join" : "create",
-  );
-  const [name, setName] = useState(
-    () => localStorage.getItem("eleven-name") || "",
-  );
-  const [code, setCode] = useState(invite || "");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const auto = useRef(false);
-  async function submit(e?: FormEvent) {
-    e?.preventDefault();
-    const clean = name.trim();
-    if (!clean || clean.length > 20) {
-      setError("Enter a name between 1 and 20 characters.");
-      return;
-    }
-    const normalized = code.replace(/[\s-]/g, "").toUpperCase();
-    if (mode === "join" && !codeValid(normalized)) {
-      setError("Enter the 20-character code from your invitation.");
-      return;
-    }
-    setError("");
-    setBusy(true);
-    localStorage.setItem("eleven-name", clean);
-    try {
-      const [{ session }, { readSavedQuestions }] = await Promise.all([
-        loadSession(),
-        import("../data/questions"),
-      ]);
-      if (mode === "create") {
-        const c = await session.create(clean);
-        for (const q of readSavedQuestions()) session.custom(q);
-        navigate(`/room/${c}`);
-      } else {
-        await session.join(normalized, clean);
-        navigate(`/room/${normalized}`);
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  useEffect(() => {
-    if (invite && name.trim() && !auto.current) {
-      auto.current = true;
-      void submit();
-    }
-  }, []);
   return (
     <>
       <main className="home">
         <section className="hero">
           <div className="hero-copy">
             <div className="eyebrow">
-              <span className="eyebrow-star">✧</span> YOUR NEXT GROUP CHAT
-              OBSESSION
+              <span className="eyebrow-star">✧</span> A LITTLE HONESTY. A LOT OF
+              LAUGHTER.
             </div>
-            <h1>
-              Your friends.
-              <br /> Your votes.
-              <br /> <span>Your secrets.</span>
-              <span className="headline-star">✳</span>
+            <h1 className="party-title">
+              <img src="/Logo.png" alt="" />
+              Eleven<span>:11</span>
             </h1>
+            <h2 className="party-tagline">
+              Your friends. Your votes. Your secrets.
+            </h2>
             <p className="hero-description">
-              You think you know your friends.
-              <br /> Let’s put that to a vote.
+              You think you know your friends. Let’s put that to a vote.
             </p>
+            <div className="party-choices" aria-label="Choose how to play">
+              <Link to="/create" className="party-choice choice-create">
+                <span className="choice-art" aria-hidden="true">
+                  <span className="choice-spark">✦</span>
+                  <span className="choice-emoji">😎</span>
+                  <span className="choice-bubble">WHO, ME?</span>
+                </span>
+                <strong>Host the fun</strong>
+                <span className="choice-kicker">CREATE A ROOM</span>
+                <span className="choice-description">
+                  Your people. Your private game.
+                </span>
+              </Link>
+              <Link to="/join" className="party-choice choice-join">
+                <span className="choice-art" aria-hidden="true">
+                  <span className="choice-emoji">🤭</span>
+                  <span className="choice-emoji friend-emoji">😂</span>
+                  <span className="choice-bubble">I’M IN!</span>
+                </span>
+                <strong>Bring the truth</strong>
+                <span className="choice-kicker">JOIN YOUR FRIENDS</span>
+                <span className="choice-description">
+                  Have an invite? Get in here.
+                </span>
+              </Link>
+            </div>
             <div className="hero-meta">
               <span>
-                <Users size={16} /> 2–12 friends recommended
+                <Users size={15} /> 2–12 friends recommended
               </span>
-              <span className="meta-divider" />
               <span>
-                <Zap size={15} /> Zero sign-ups. All fun.
+                <Zap size={14} /> Zero sign-ups. All fun.
               </span>
             </div>
-            <form className="join-form" onSubmit={submit}>
-              <label htmlFor="nickname">What should we call you?</label>
-              <div className="name-input">
-                <span>
-                  <Users size={17} />
-                </span>
-                <input
-                  id="nickname"
-                  autoComplete="nickname"
-                  maxLength={20}
-                  placeholder="Enter your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-                <span className="input-counter">{name.length}/20</span>
-              </div>
-              {mode === "join" && (
-                <label className="code-label">
-                  Your room code
-                  <input
-                    autoFocus={!invite}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    placeholder="Paste your room code"
-                    maxLength={40}
-                    required
-                    autoCapitalize="characters"
-                  />
-                </label>
-              )}
-              {error && (
-                <p className="error" role="alert">
-                  {error}
-                </p>
-              )}
-              <div className="home-actions">
-                <Button type="submit" disabled={busy}>
-                  {busy ? (
-                    <LoaderCircle className="spin" size={18} />
-                  ) : mode === "create" ? (
-                    <Plus size={18} />
-                  ) : (
-                    <Link2 size={18} />
-                  )}{" "}
-                  {mode === "create" ? "Create a Game" : "Join this Game"}{" "}
-                  <ArrowRight size={18} />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setMode(mode === "create" ? "join" : "create");
-                    setError("");
-                  }}
-                >
-                  {mode === "create" ? (
-                    <>
-                      <Link2 size={17} /> Join a Game
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={17} /> Create instead
-                    </>
-                  )}
-                </Button>
-              </div>
-              <p className="form-note">
-                <ShieldCheck size={13} /> Just a name. No accounts, no awkward
-                introductions.
-              </p>
-            </form>
             {activeRoom && (
               <Link className="text-link" to={`/room/${activeRoom}`}>
                 Return to your active room <ArrowRight size={14} />
               </Link>
             )}
           </div>
-          <HeroArt />
         </section>
         <section className="how-strip" aria-label="How it works">
           <div className="how-intro">
@@ -321,5 +158,146 @@ export function Home() {
         </div>
       </main>
     </>
+  );
+}
+
+export function GameEntry({ mode }: { mode: "create" | "join" }) {
+  const { code: invite } = useParams();
+  const navigate = useNavigate();
+  const [name, setName] = useState(
+    () => localStorage.getItem("eleven-name") || "",
+  );
+  const [code, setCode] = useState(invite || "");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const auto = useRef(false);
+  async function submit(e?: FormEvent) {
+    e?.preventDefault();
+    const clean = name.trim();
+    if (!clean || clean.length > 20) {
+      setError("Enter a name between 1 and 20 characters.");
+      return;
+    }
+    const normalized = code.replace(/[\s-]/g, "").toUpperCase();
+    if (mode === "join" && !codeValid(normalized)) {
+      setError("Enter the 20-character code from your invitation.");
+      return;
+    }
+    setError("");
+    setBusy(true);
+    localStorage.setItem("eleven-name", clean);
+    try {
+      const [{ session }, { readSavedQuestions }] = await Promise.all([
+        loadSession(),
+        import("../data/questions"),
+      ]);
+      if (mode === "create") {
+        const c = await session.create(clean);
+        for (const q of readSavedQuestions()) session.custom(q);
+        navigate(`/room/${c}`);
+      } else {
+        await session.join(normalized, clean);
+        navigate(`/room/${normalized}`);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  useEffect(() => {
+    if (invite && name.trim() && !auto.current) {
+      auto.current = true;
+      void submit();
+    }
+  }, []);
+  return (
+    <main className="home entry-page">
+      <section className="hero">
+        <div className="hero-copy">
+          <Link className="text-link entry-back" to="/">
+            <ArrowLeft size={16} /> Back to home
+          </Link>
+          <div className="panel entry-panel">
+            <span className="entry-emoji" aria-hidden="true">
+              {mode === "create" ? "😎" : "🤭"}
+            </span>
+            <div className="eyebrow">
+              {mode === "create" ? "HOST THE FUN" : "BRING THE TRUTH"}
+            </div>
+            <h1>{mode === "create" ? "Create a game" : "Join your friends"}</h1>
+            <p>
+              {mode === "create"
+                ? "Pick your name. We’ll make room for your people."
+                : "Your friends are waiting. Grab your invitation code."}
+            </p>
+            <form className="join-form" onSubmit={submit}>
+              <label htmlFor="nickname">What should we call you?</label>
+              <div className="name-input">
+                <span>
+                  <Users size={17} />
+                </span>
+                <input
+                  id="nickname"
+                  autoComplete="nickname"
+                  maxLength={20}
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+                <span className="input-counter">{name.length}/20</span>
+              </div>
+              {mode === "join" && (
+                <label className="code-label">
+                  Your room code
+                  <input
+                    autoFocus={!invite}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    placeholder="Paste your room code"
+                    maxLength={40}
+                    required
+                    autoCapitalize="characters"
+                  />
+                </label>
+              )}
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
+              <div className="home-actions">
+                <Button type="submit" disabled={busy}>
+                  {busy ? (
+                    <LoaderCircle className="spin" size={18} />
+                  ) : mode === "create" ? (
+                    <Plus size={18} />
+                  ) : (
+                    <Link2 size={18} />
+                  )}{" "}
+                  {mode === "create" ? "Create a Game" : "Join this Game"}{" "}
+                  <ArrowRight size={18} />
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to={mode === "create" ? "/join" : "/create"}>
+                    {mode === "create" ? (
+                      <Link2 size={17} />
+                    ) : (
+                      <Plus size={17} />
+                    )}
+                    {mode === "create" ? "Join a Game" : "Create instead"}
+                  </Link>
+                </Button>
+              </div>
+              <p className="form-note">
+                <ShieldCheck size={13} /> Just a name. No accounts, no awkward
+                introductions.
+              </p>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

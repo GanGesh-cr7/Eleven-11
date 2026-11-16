@@ -17,7 +17,7 @@ await page.route("**/*", async (route) => {
     });
   } else await route.continue();
 });
-await page.goto("http://127.0.0.1:4173");
+await page.goto("http://127.0.0.1:4173/create");
 await page.getByPlaceholder("Enter your name").fill("Production host");
 await page.getByRole("button", { name: "Create a Game", exact: true }).click();
 await page.waitForURL("**/room/**");

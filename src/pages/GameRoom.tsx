@@ -83,8 +83,15 @@ export function ShareRoom({ code }: { code: string }) {
       <div className="invite-box">
         <div>
           <span className="eyebrow">YOUR PRIVATE ROOM</span>
-          <strong className="room-code">
-            {code.match(/.{1,5}/g)?.join(" ")}
+          <strong
+            className="room-code"
+            aria-label={code.match(/.{1,5}/g)?.join(" ")}
+          >
+            {code.match(/.{1,5}/g)?.map((group, index) => (
+              <span className="code-group" key={index}>
+                {group}
+              </span>
+            ))}
           </strong>
         </div>
         <Button
@@ -345,7 +352,7 @@ export function Lobby() {
         </p>
       </div>
       <div className="lobby-grid">
-        <section className="panel">
+        <section className="panel circle-panel">
           <ShareRoom code={s.code} />
           <div className="section-title">
             <h2>

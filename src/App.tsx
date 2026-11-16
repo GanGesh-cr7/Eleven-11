@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { useLocation, Routes, Route } from "react-router-dom";
 import { LoaderCircle } from "lucide-react";
 import { Header, Footer } from "./components/Shell";
-import { Home } from "./pages/Home";
+import { Home, GameEntry } from "./pages/Home";
 import { Privacy, NotFound } from "./pages/Information";
 import { loadQuestions, loadRoom } from "./lazy";
 
@@ -42,7 +42,18 @@ export default function App() {
         <Suspense fallback={<RouteLoading />}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/join/:code" element={<Home />} />
+            <Route
+              path="/create"
+              element={<GameEntry key="create" mode="create" />}
+            />
+            <Route
+              path="/join"
+              element={<GameEntry key="join" mode="join" />}
+            />
+            <Route
+              path="/join/:code"
+              element={<GameEntry key={location.pathname} mode="join" />}
+            />
             {["room", "game", "results", "summary"].map((p) => (
               <Route key={p} path={`/${p}/:code`} element={<RoomRoute />} />
             ))}

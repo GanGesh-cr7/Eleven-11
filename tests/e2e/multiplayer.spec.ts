@@ -9,7 +9,7 @@ const state = async (p: Page) =>
     return session.getSnapshot();
   });
 async function create(page: Page) {
-  await page.goto("/");
+  await page.goto("/create");
   await page.getByPlaceholder("Enter your name").fill("Alex");
   await page
     .getByRole("button", { name: "Create a Game", exact: true })
@@ -192,10 +192,7 @@ test("full rooms reject real admission and unknown codes time out", async ({
     outsider.getByText("This room is full.", { exact: true }),
   ).toBeVisible({ timeout: 35000 });
   expect((await state(host)).state.players.length).toBe(2);
-  await outsider.goto("/");
-  await outsider
-    .getByRole("button", { name: "Join a Game", exact: true })
-    .click();
+  await outsider.goto("/join");
   await outsider.getByPlaceholder("Enter your name").fill("NoRoom");
   await outsider
     .getByPlaceholder("Paste your room code")

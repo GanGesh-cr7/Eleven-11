@@ -8,7 +8,19 @@ test("home, inputs, question editor, privacy, and direct routes", async ({
   await expect(
     page.getByRole("heading", { name: /Your friends/ }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Join a Game", exact: true }).click();
+  await expect(page.getByPlaceholder("Enter your name")).toHaveCount(0);
+  await page.getByRole("link", { name: /Host the fun/ }).click();
+  await expect(page).toHaveURL(/\/create$/);
+  await expect(page.getByPlaceholder("Enter your name")).toBeVisible();
+  await expect(page.getByPlaceholder("Paste your room code")).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Create a game", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Back to home" }).click();
+  await page.getByRole("link", { name: /Bring the truth/ }).click();
+  await expect(page).toHaveURL(/\/join$/);
+  await page.reload();
   await page.getByPlaceholder("Enter your name").fill("Robin");
   await page.getByPlaceholder("Paste your room code").fill("WRONG");
   await page
@@ -56,7 +68,7 @@ test("home, inputs, question editor, privacy, and direct routes", async ({
 test("mobile layouts have no horizontal overflow", async ({ page }) => {
   for (const width of [320, 390, 768]) {
     await page.setViewportSize({ width, height: 844 });
-    for (const route of ["/", "/questions", "/privacy"]) {
+    for (const route of ["/", "/create", "/join", "/questions", "/privacy"]) {
       await page.goto(route);
       expect(
         await page.evaluate(
